@@ -5,19 +5,25 @@ import '../../../widgets/app_card.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/app_input.dart';
 
-class AdminUsersView extends StatelessWidget {
+import '../../../core/models/user_model.dart' as model;
+import '../../../core/providers/user_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class AdminUsersView extends ConsumerWidget {
   const AdminUsersView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final users = ref.watch(userProvider);
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(context),
+          _buildHeader(context, ref),
           const SizedBox(height: 32),
-          _buildSummaryCards(context),
+          _buildSummaryCards(context, users),
           const SizedBox(height: 32),
           AppCard(
             padding: EdgeInsets.zero,
@@ -25,17 +31,22 @@ class AdminUsersView extends StatelessWidget {
               children: [
                 _buildTableHeader(),
                 const Divider(height: 1, color: AppColors.borderGray),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  itemCount: 10,
-                  separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderGray),
-                  itemBuilder: (context, index) {
-                    return _buildUserRow(context, index);
-                  },
-                ),
-                _buildTableFooter(),
+                users.isEmpty 
+                  ? const Padding(
+                      padding: EdgeInsets.all(48.0),
+                      child: Center(child: Text('No users found')),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      itemCount: users.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderGray),
+                      itemBuilder: (context, index) {
+                        return _buildUserRow(context, ref, users[index], index);
+                      },
+                    ),
+                _buildTableFooter(users.length),
               ],
             ),
           ),
@@ -44,7 +55,7 @@ class AdminUsersView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -66,7 +77,7 @@ class AdminUsersView extends StatelessWidget {
               child: AppButton(
                 text: 'Create New User',
                 icon: Icons.person_add_rounded,
-                onPressed: () => _showAddUserDialog(context),
+                onPressed: () => _showAddUserDialog(context, ref),
               ),
             ),
           ],
@@ -99,16 +110,15 @@ class AdminUsersView extends StatelessWidget {
           Expanded(flex: 2, child: Text('ROLE', style: AppTextStyles.label.copyWith(fontSize: 11))),
           Expanded(flex: 2, child: Text('STATUS', style: AppTextStyles.label.copyWith(fontSize: 11))),
           Expanded(flex: 2, child: Text('LAST ACTIVE', style: AppTextStyles.label.copyWith(fontSize: 11))),
-          SizedBox(width: 120, child: Center(child: Text('ACTIONS', style: AppTextStyles.label.copyWith(fontSize: 11)))),
+          SizedBox(width: 160, child: Center(child: Text('ACTIONS', style: AppTextStyles.label.copyWith(fontSize: 11)))),
         ],
       ),
     );
   }
 
-  Widget _buildUserRow(BuildContext context, int index) {
-    final roles = ['Passenger', 'Driver', 'Admin'];
-    final role = roles[index % 3];
-    final Color roleColor = role == 'Admin' ? AppColors.error : (role == 'Driver' ? AppColors.info : AppColors.success);
+  Widget _buildUserRow(BuildContext context, WidgetRef ref, model.User user, int index) {
+    final String role = user.role == model.UserRole.admin ? 'Admin' : (user.role == model.UserRole.driver ? 'Driver' : 'Passenger');
+    final Color roleColor = user.role == model.UserRole.admin ? AppColors.error : (user.role == model.UserRole.driver ? AppColors.info : AppColors.success);
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -123,7 +133,7 @@ class AdminUsersView extends StatelessWidget {
                   radius: 18,
                   backgroundColor: AppColors.teal.withValues(alpha: 0.1),
                   child: Text(
-                    'AH',
+                    user.firstName.substring(0, 1) + user.lastName.substring(0, 1),
                     style: AppTextStyles.bodySmall.copyWith(color: AppColors.teal, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -132,8 +142,8 @@ class AdminUsersView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Ahmed Hassan', style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.bold)),
-                      Text('ahmed@somsafar.com', style: AppTextStyles.caption.copyWith(color: AppColors.textGray)),
+                      Text(user.fullName, style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.bold)),
+                      Text(user.email, style: AppTextStyles.caption.copyWith(color: AppColors.textGray)),
                     ],
                   ),
                 ),
@@ -166,10 +176,13 @@ class AdminUsersView extends StatelessWidget {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: user.status == model.UserStatus.active ? AppColors.success : AppColors.textGray,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Text('Active', style: AppTextStyles.bodySmall),
+                Text(user.status == model.UserStatus.active ? 'Active' : 'Inactive', style: AppTextStyles.bodySmall),
               ],
             ),
           ),
@@ -177,20 +190,35 @@ class AdminUsersView extends StatelessWidget {
           // Last Active
           Expanded(
             flex: 2,
-            child: Text('2 hours ago', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGray)),
+            child: Text(user.lastActive, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGray)),
           ),
 
           // Actions
           SizedBox(
-            width: 120,
+            width: 160,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildActionIcon(Icons.visibility_outlined, AppColors.info, () => _showUserDetailsDialog(context, index, isReadOnly: true)),
-                const SizedBox(width: 8),
-                _buildActionIcon(Icons.edit_outlined, AppColors.teal, () => _showUserDetailsDialog(context, index, isReadOnly: false)),
-                const SizedBox(width: 8),
-                _buildActionIcon(Icons.delete_outline_rounded, AppColors.error, () => _showDeleteConfirmation(context)),
+                _buildActionIcon(
+                  Icons.visibility_rounded,
+                  const Color(0xFF3383FF),
+                  const Color(0xFFEBF3FF),
+                  () => _showUserDetailsDialog(context, ref, user, isReadOnly: true),
+                ),
+                const SizedBox(width: 12),
+                _buildActionIcon(
+                  Icons.edit_rounded,
+                  const Color(0xFF475569),
+                  const Color(0xFFF1F5F9),
+                  () => _showUserDetailsDialog(context, ref, user, isReadOnly: false),
+                ),
+                const SizedBox(width: 12),
+                _buildActionIcon(
+                  Icons.delete_rounded,
+                  const Color(0xFFEF4444),
+                  const Color(0xFFFEE2E2),
+                  () => _showDeleteConfirmation(context, ref, user.id),
+                ),
               ],
             ),
           ),
@@ -199,23 +227,23 @@ class AdminUsersView extends StatelessWidget {
     );
   }
 
-  Widget _buildActionIcon(IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionIcon(IconData icon, Color color, Color bgColor, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.borderGray),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
         ),
-        child: Icon(icon, size: 16, color: color),
+        child: Icon(icon, size: 18, color: color),
       ),
     );
   }
 
-  Widget _buildTableFooter() {
+  Widget _buildTableFooter(int total) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: const BoxDecoration(
@@ -225,7 +253,7 @@ class AdminUsersView extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Showing 1-10 of 3,890 users', style: AppTextStyles.caption),
+          Text('Showing $total users', style: AppTextStyles.caption),
           Row(
             children: [
               _buildPageButton(Icons.chevron_left_rounded, false),
@@ -250,7 +278,7 @@ class AdminUsersView extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
+  void _showDeleteConfirmation(BuildContext context, WidgetRef ref, String id) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -267,6 +295,7 @@ class AdminUsersView extends StatelessWidget {
             child: AppButton(
               text: 'Delete',
               onPressed: () {
+                ref.read(userProvider.notifier).deleteUser(id);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -283,7 +312,7 @@ class AdminUsersView extends StatelessWidget {
     );
   }
 
-  void _showAddUserDialog(BuildContext context) {
+  void _showAddUserDialog(BuildContext context, WidgetRef ref) {
     String selectedRole = 'Passenger';
     String selectedAdminType = 'Super Admin';
 
@@ -291,6 +320,11 @@ class AdminUsersView extends StatelessWidget {
     const adminTypes = ['Super Admin', 'Route Manager', 'Bus Manager', 'Finance Admin', 'Support Admin'];
 
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+    final firstNameController = TextEditingController();
+    final lastNameController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    
     bool isSaving = false;
 
     showDialog(
@@ -344,17 +378,17 @@ class AdminUsersView extends StatelessWidget {
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            Expanded(child: AppInput(label: 'First Name', hintText: 'Ahmed', prefixIcon: Icons.badge_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                            Expanded(child: AppInput(label: 'First Name', hintText: 'Ahmed', controller: firstNameController, prefixIcon: Icons.badge_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
                             const SizedBox(width: 20),
-                            Expanded(child: AppInput(label: 'Last Name', hintText: 'Hassan', prefixIcon: Icons.badge_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                            Expanded(child: AppInput(label: 'Last Name', hintText: 'Hassan', controller: lastNameController, prefixIcon: Icons.badge_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
                           ],
                         ),
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            Expanded(child: AppInput(label: 'Email Address', hintText: 'ahmed@example.com', prefixIcon: Icons.email_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                            Expanded(child: AppInput(label: 'Email Address', hintText: 'ahmed@example.com', controller: emailController, prefixIcon: Icons.email_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
                             const SizedBox(width: 20),
-                            Expanded(child: AppInput(label: 'Phone Number', hintText: '+252 61XXXXXXX', prefixIcon: Icons.phone_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                            Expanded(child: AppInput(label: 'Phone Number', hintText: '+252 61XXXXXXX', controller: phoneController, prefixIcon: Icons.phone_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -433,7 +467,22 @@ class AdminUsersView extends StatelessWidget {
                                 onPressed: () async {
                                   if (formKey.currentState!.validate()) {
                                     setDialogState(() => isSaving = true);
-                                    await Future.delayed(const Duration(milliseconds: 1500));
+                                    
+                                    final newUser = model.User(
+                                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                                      firstName: firstNameController.text,
+                                      lastName: lastNameController.text,
+                                      email: emailController.text,
+                                      phoneNumber: phoneController.text,
+                                      role: selectedRole == 'Admin' ? model.UserRole.admin : (selectedRole == 'Driver' ? model.UserRole.driver : model.UserRole.passenger),
+                                      status: model.UserStatus.active,
+                                      lastActive: 'Just now',
+                                      adminCategory: selectedRole == 'Admin' ? selectedAdminType : null,
+                                    );
+
+                                    await Future.delayed(const Duration(milliseconds: 1000));
+                                    ref.read(userProvider.notifier).addUser(newUser);
+
                                     if (context.mounted) {
                                       setDialogState(() => isSaving = false);
                                       Navigator.pop(context);
@@ -463,16 +512,21 @@ class AdminUsersView extends StatelessWidget {
     );
   }
 
-  void _showUserDetailsDialog(BuildContext context, int index, {bool isReadOnly = false}) {
-    String selectedRole = index == 0 ? 'Admin' : 'Passenger';
-    String selectedAdminType = 'Super Admin';
-    String selectedStatus = index == 0 ? 'Inactive' : 'Active';
+  void _showUserDetailsDialog(BuildContext context, WidgetRef ref, model.User user, {bool isReadOnly = false}) {
+    String selectedRole = user.role == model.UserRole.admin ? 'Admin' : (user.role == model.UserRole.driver ? 'Driver' : 'Passenger');
+    String selectedAdminType = user.adminCategory ?? 'Super Admin';
+    String selectedStatus = user.status == model.UserStatus.active ? 'Active' : 'Inactive';
 
     const roles = ['Passenger', 'Driver', 'Admin'];
     const adminTypes = ['Super Admin', 'Route Manager', 'Bus Manager', 'Finance Admin', 'Support Admin'];
     const statuses = ['Active', 'Inactive'];
 
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+    final firstNameController = TextEditingController(text: user.firstName);
+    final lastNameController = TextEditingController(text: user.lastName);
+    final emailController = TextEditingController(text: user.email);
+    final phoneController = TextEditingController(text: user.phoneNumber);
+    
     bool isSaving = false;
 
     showDialog(
@@ -481,10 +535,12 @@ class AdminUsersView extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: Colors.white,
+              elevation: 40,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
               child: Container(
-                width: 600,
-                padding: const EdgeInsets.all(32),
+                width: 680,
+                padding: const EdgeInsets.all(40),
                 child: Form(
                   key: formKey,
                   child: SingleChildScrollView(
@@ -492,29 +548,30 @@ class AdminUsersView extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header
+                        // Header Section
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: isReadOnly ? AppColors.info.withValues(alpha: 0.1) : AppColors.teal.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
+                                color: const Color(0xFFEBF3FF),
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                              child: Icon(
-                                isReadOnly ? Icons.visibility_outlined : Icons.edit_outlined,
-                                color: isReadOnly ? AppColors.info : AppColors.teal,
+                              child: const Icon(
+                                Icons.visibility_rounded,
+                                color: Color(0xFF3383FF),
+                                size: 28,
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 20),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(isReadOnly ? 'User Profile' : 'Edit User Profile', style: AppTextStyles.h2),
+                                  Text(isReadOnly ? 'User Profile' : 'Edit User Profile', style: AppTextStyles.h2.copyWith(fontSize: 26)),
                                   Text(
                                     isReadOnly ? 'Full access to user records and history' : 'Update account permissions and details',
-                                    style: AppTextStyles.caption,
+                                    style: AppTextStyles.bodyRegular.copyWith(color: AppColors.textGray.withValues(alpha: 0.7)),
                                   ),
                                 ],
                               ),
@@ -525,74 +582,101 @@ class AdminUsersView extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 48),
 
-                        // Personal Information Section
-                        _buildSectionHeader(Icons.person_outline_rounded, 'Personal Information'),
-                        const SizedBox(height: 20),
+                        // Section 1: Personal Information
+                        Row(
+                          children: [
+                            const Icon(Icons.person_outline_rounded, size: 22, color: Color(0xFF6B7A99)),
+                            const SizedBox(width: 12),
+                            Text('Personal Information', style: AppTextStyles.h3.copyWith(color: const Color(0xFF6B7A99), fontSize: 20)),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
                         Row(
                           children: [
                             Expanded(
                               child: AppInput(
                                 label: 'First Name',
-                                controller: TextEditingController(text: 'Ahmed'),
+                                controller: firstNameController,
                                 enabled: !isReadOnly,
                                 prefixIcon: Icons.badge_outlined,
                               ),
                             ),
-                            const SizedBox(width: 20),
+                            const SizedBox(width: 24),
                             Expanded(
                               child: AppInput(
                                 label: 'Last Name',
-                                controller: TextEditingController(text: 'Hassan'),
+                                controller: lastNameController,
                                 enabled: !isReadOnly,
                                 prefixIcon: Icons.badge_outlined,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
-                        AppInput(
-                          label: 'Email Address',
-                          controller: TextEditingController(text: 'user${index + 1}@example.com'),
-                          enabled: !isReadOnly,
-                          prefixIcon: Icons.email_outlined,
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: AppInput(
+                                label: 'Email Address',
+                                controller: emailController,
+                                enabled: !isReadOnly,
+                                prefixIcon: Icons.email_outlined,
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            Expanded(
+                              child: AppInput(
+                                label: 'Phone Number',
+                                controller: phoneController,
+                                enabled: !isReadOnly,
+                                prefixIcon: Icons.phone_outlined,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+
+                        // Section 2: Account & Roles
+                        Row(
+                          children: [
+                            const Icon(Icons.shield_outlined, size: 22, color: Color(0xFF6B7A99)),
+                            const SizedBox(width: 12),
+                            Text('Account & Roles', style: AppTextStyles.h3.copyWith(color: const Color(0xFF6B7A99), fontSize: 20)),
+                          ],
                         ),
                         const SizedBox(height: 24),
-
-                        // Role & Account Section
-                        _buildSectionHeader(Icons.shield_outlined, 'Account & Roles'),
-                        const SizedBox(height: 20),
-                        Text('System Role', style: AppTextStyles.label),
+                        Text('System Role', style: AppTextStyles.label.copyWith(color: const Color(0xFF6B7A99))),
                         const SizedBox(height: 12),
                         Row(
                           children: roles.map((role) {
                             final isSelected = selectedRole == role;
-                            Color color = role == 'Admin' ? AppColors.error : (role == 'Driver' ? AppColors.info : AppColors.success);
+                            final Color roleColor = role == 'Admin' ? AppColors.error : AppColors.info;
                             
                             return Expanded(
                               child: Padding(
-                                padding: EdgeInsets.only(right: role == roles.last ? 0 : 12),
+                                padding: EdgeInsets.only(right: role == roles.last ? 0 : 16),
                                 child: InkWell(
                                   onTap: isReadOnly ? null : () => setDialogState(() => selectedRole = role),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? color.withValues(alpha: 0.1) : AppColors.lightGray,
-                                      borderRadius: BorderRadius.circular(12),
+                                      color: isSelected ? roleColor.withValues(alpha: 0.08) : const Color(0xFFF8FAFF),
+                                      borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
-                                        color: isSelected ? color : AppColors.borderGray,
-                                        width: isSelected ? 1.5 : 1,
+                                        color: isSelected ? roleColor : const Color(0xFFE4E8F0),
+                                        width: isSelected ? 2 : 1.5,
                                       ),
                                     ),
                                     child: Center(
                                       child: Text(
                                         role,
-                                        style: AppTextStyles.bodySmall.copyWith(
-                                          color: isSelected ? color : AppColors.textGray,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        style: AppTextStyles.bodyRegular.copyWith(
+                                          color: isSelected ? roleColor : const Color(0xFF6B7A99),
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                         ),
                                       ),
                                     ),
@@ -604,9 +688,9 @@ class AdminUsersView extends StatelessWidget {
                         ),
                         
                         if (selectedRole == 'Admin') ...[
-                          const SizedBox(height: 20),
-                          Text('Admin Category', style: AppTextStyles.label),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 32),
+                          Text('Admin Category', style: AppTextStyles.label.copyWith(color: const Color(0xFF6B7A99))),
+                          const SizedBox(height: 12),
                           _buildPickerField(
                             value: selectedAdminType,
                             items: adminTypes,
@@ -616,7 +700,7 @@ class AdminUsersView extends StatelessWidget {
                         ],
 
                         const SizedBox(height: 24),
-                        Text('Account Status', style: AppTextStyles.label),
+                        Text('Account Status', style: AppTextStyles.label.copyWith(color: const Color(0xFF6B7A99))),
                         const SizedBox(height: 12),
                         Row(
                           children: statuses.map((s) {
@@ -655,9 +739,9 @@ class AdminUsersView extends StatelessWidget {
                           }).toList(),
                         ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 56),
 
-                        // Actions
+                        // Actions Section
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -672,7 +756,7 @@ class AdminUsersView extends StatelessWidget {
                               ),
                               const SizedBox(width: 16),
                               SizedBox(
-                                width: 180,
+                                width: 200,
                                 child: AppButton(
                                   text: 'Save Changes',
                                   icon: Icons.check_circle_outline_rounded,
@@ -680,7 +764,20 @@ class AdminUsersView extends StatelessWidget {
                                   onPressed: () async {
                                     if (formKey.currentState!.validate()) {
                                       setDialogState(() => isSaving = true);
-                                      await Future.delayed(const Duration(milliseconds: 1500));
+                                      
+                                      final updatedUser = user.copyWith(
+                                        firstName: firstNameController.text,
+                                        lastName: lastNameController.text,
+                                        email: emailController.text,
+                                        phoneNumber: phoneController.text,
+                                        role: selectedRole == 'Admin' ? model.UserRole.admin : (selectedRole == 'Driver' ? model.UserRole.driver : model.UserRole.passenger),
+                                        status: selectedStatus == 'Active' ? model.UserStatus.active : model.UserStatus.inactive,
+                                        adminCategory: selectedRole == 'Admin' ? selectedAdminType : null,
+                                      );
+
+                                      await Future.delayed(const Duration(milliseconds: 1000));
+                                      ref.read(userProvider.notifier).updateUser(updatedUser);
+
                                       if (context.mounted) {
                                         setDialogState(() => isSaving = false);
                                         Navigator.pop(context);
@@ -698,9 +795,9 @@ class AdminUsersView extends StatelessWidget {
                               ),
                             ] else ...[
                               SizedBox(
-                                width: 160,
+                                width: 220,
                                 child: AppButton(
-                                  text: 'Close Profile',
+                                  text: 'Done',
                                   onPressed: () => Navigator.pop(context),
                                 ),
                               ),
@@ -765,18 +862,22 @@ class AdminUsersView extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCards(BuildContext context) {
+  Widget _buildSummaryCards(BuildContext context, List<model.User> users) {
     final bool isDesktop = MediaQuery.of(context).size.width > 1200;
+    final int activeCount = users.where((u) => u.status == model.UserStatus.active).length;
+    final int driverCount = users.where((u) => u.role == model.UserRole.driver).length;
+    final int adminCount = users.where((u) => u.role == model.UserRole.admin).length;
+
     return Row(
       children: [
-        Expanded(child: _buildSummaryCard('Total Users', '3,890', Icons.people_rounded, AppColors.info)),
+        Expanded(child: _buildSummaryCard('Total Users', users.length.toString(), Icons.people_rounded, AppColors.info)),
         const SizedBox(width: 20),
-        Expanded(child: _buildSummaryCard('Active Now', '1,240', Icons.person_pin_circle_rounded, AppColors.success)),
+        Expanded(child: _buildSummaryCard('Active Now', activeCount.toString(), Icons.person_pin_circle_rounded, AppColors.success)),
         const SizedBox(width: 20),
-        Expanded(child: _buildSummaryCard('Drivers', '45', Icons.badge_rounded, AppColors.warning)),
+        Expanded(child: _buildSummaryCard('Drivers', driverCount.toString(), Icons.badge_rounded, AppColors.warning)),
         if (isDesktop) ...[
           const SizedBox(width: 20),
-          Expanded(child: _buildSummaryCard('Admins', '8', Icons.admin_panel_settings_rounded, AppColors.error)),
+          Expanded(child: _buildSummaryCard('Admins', adminCount.toString(), Icons.admin_panel_settings_rounded, AppColors.error)),
         ]
       ],
     );

@@ -1,52 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../widgets/app_card.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/app_input.dart';
+import '../../../core/models/bus_model.dart';
+import '../../../core/providers/bus_provider.dart';
 
-class AdminBusesView extends StatelessWidget {
+class AdminBusesView extends ConsumerWidget {
   const AdminBusesView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final buses = ref.watch(busProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(context),
+          _buildHeader(context, ref),
           const SizedBox(height: 32),
-          LayoutBuilder(builder: (context, constraints) {
-            int crossAxisCount = 2;
-            if (constraints.maxWidth > 1200) {
-              crossAxisCount = 4;
-            } else if (constraints.maxWidth > 800) {
-              crossAxisCount = 3;
-            }
+          buses.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(48.0),
+                  child: Center(child: Text('No buses in fleet')),
+                )
+              : LayoutBuilder(builder: (context, constraints) {
+                  int crossAxisCount = 2;
+                  if (constraints.maxWidth > 1200) {
+                    crossAxisCount = 4;
+                  } else if (constraints.maxWidth > 800) {
+                    crossAxisCount = 3;
+                  }
 
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 24,
-                childAspectRatio: 0.8,
-              ),
-              itemCount: 12,
-              itemBuilder: (context, index) {
-                return _buildBusCard(context, index);
-              },
-            );
-          }),
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 24,
+                      mainAxisSpacing: 24,
+                      childAspectRatio: 0.8,
+                    ),
+                    itemCount: buses.length,
+                    itemBuilder: (context, index) {
+                      return _buildBusCard(context, ref, buses[index], index);
+                    },
+                  );
+                }),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -68,7 +78,7 @@ class AdminBusesView extends StatelessWidget {
               child: AppButton(
                 text: 'Add New Bus',
                 icon: Icons.add_rounded,
-                onPressed: () => _showAddBusDialog(context),
+                onPressed: () => _showAddBusDialog(context, ref),
               ),
             ),
           ],
@@ -91,19 +101,14 @@ class AdminBusesView extends StatelessWidget {
     );
   }
 
-  Widget _buildBusCard(BuildContext context, int index) {
-    final statusIndex = index % 3;
-    String status = '';
+  Widget _buildBusCard(BuildContext context, WidgetRef ref, Bus bus, int index) {
     Color statusColor = AppColors.success;
 
-    if (statusIndex == 0) {
-      status = 'Available';
+    if (bus.status == 'Available') {
       statusColor = AppColors.success;
-    } else if (statusIndex == 1) {
-      status = 'On Trip';
+    } else if (bus.status == 'On Trip') {
       statusColor = AppColors.info;
     } else {
-      status = 'Maintenance';
       statusColor = AppColors.warning;
     }
 
@@ -131,21 +136,21 @@ class AdminBusesView extends StatelessWidget {
                   border: Border.all(color: statusColor.withValues(alpha: 0.2)),
                 ),
                 child: Text(
-                  status,
+                  bus.status,
                   style: AppTextStyles.caption.copyWith(color: statusColor, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          Text('Bus #${100 + index}', style: AppTextStyles.h3),
+          Text(bus.number, style: AppTextStyles.h3),
           const SizedBox(height: 4),
-          Text('Plate: SOM-${1000 + (index * 7)}',
+          Text('Plate: ${bus.plateNumber}',
               style: AppTextStyles.caption.copyWith(color: AppColors.textGray)),
           const Spacer(),
-          _buildInfoRow(Icons.airline_seat_recline_normal_rounded, '45 Seats'),
+          _buildInfoRow(Icons.airline_seat_recline_normal_rounded, '${bus.totalSeats} Seats'),
           const SizedBox(height: 8),
-          _buildInfoRow(Icons.person_outline_rounded, statusIndex == 1 ? 'Ahmed Mohamed' : 'Unassigned'),
+          _buildInfoRow(Icons.category_outlined, bus.type),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -154,7 +159,7 @@ class AdminBusesView extends StatelessWidget {
                   icon: Icons.visibility_outlined,
                   label: 'View',
                   color: AppColors.info,
-                  onPressed: () => _showBusDetailsDialog(context, index, isReadOnly: true),
+                  onPressed: () => _showBusDetailsDialog(context, ref, bus, isReadOnly: true),
                 ),
               ),
               const SizedBox(width: 8),
@@ -163,11 +168,11 @@ class AdminBusesView extends StatelessWidget {
                   icon: Icons.edit_outlined,
                   label: 'Edit',
                   color: AppColors.teal,
-                  onPressed: () => _showBusDetailsDialog(context, index, isReadOnly: false),
+                  onPressed: () => _showBusDetailsDialog(context, ref, bus, isReadOnly: false),
                 ),
               ),
               const SizedBox(width: 8),
-              _buildDeleteAction(() => _showDeleteConfirmation(context)),
+              _buildDeleteAction(() => _showDeleteConfirmation(context, ref, bus.id)),
             ],
           )
         ],
@@ -275,11 +280,16 @@ class AdminBusesView extends StatelessWidget {
     );
   }
 
-  void _showAddBusDialog(BuildContext context) {
-    _showBusDetailsDialog(context, -1, isReadOnly: false, isNew: true);
+  void _showAddBusDialog(BuildContext context, WidgetRef ref) {
+    _showBusDetailsDialog(context, ref, null, isReadOnly: false, isNew: true);
   }
 
-  void _showBusDetailsDialog(BuildContext context, int index, {required bool isReadOnly, bool isNew = false}) {
+  void _showBusDetailsDialog(BuildContext context, WidgetRef ref, Bus? bus, {required bool isReadOnly, bool isNew = false}) {
+    final numberController = TextEditingController(text: bus?.number ?? '');
+    final plateController = TextEditingController(text: bus?.plateNumber ?? '');
+    final seatsController = TextEditingController(text: bus?.totalSeats.toString() ?? '45');
+    final typeController = TextEditingController(text: bus?.type ?? 'Luxury');
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -325,6 +335,7 @@ class AdminBusesView extends StatelessWidget {
                 AppInput(
                   label: 'Bus Number / ID',
                   hintText: 'e.g., BUS-101',
+                  controller: numberController,
                   enabled: !isReadOnly,
                   prefixIcon: Icons.tag_rounded,
                 ),
@@ -332,6 +343,7 @@ class AdminBusesView extends StatelessWidget {
                 AppInput(
                   label: 'License Plate',
                   hintText: 'e.g., SOM-1234',
+                  controller: plateController,
                   enabled: !isReadOnly,
                   prefixIcon: Icons.badge_outlined,
                 ),
@@ -342,6 +354,7 @@ class AdminBusesView extends StatelessWidget {
                       child: AppInput(
                         label: 'Total Seats',
                         hintText: '45',
+                        controller: seatsController,
                         enabled: !isReadOnly,
                         keyboardType: TextInputType.number,
                         prefixIcon: Icons.airline_seat_recline_normal_rounded,
@@ -352,6 +365,7 @@ class AdminBusesView extends StatelessWidget {
                       child: AppInput(
                         label: 'Bus Type',
                         hintText: 'Luxury / Standard',
+                        controller: typeController,
                         enabled: !isReadOnly,
                         prefixIcon: Icons.category_outlined,
                       ),
@@ -359,10 +373,10 @@ class AdminBusesView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-                AppInput(
+                const AppInput(
                   label: 'Manufacturer / Model',
                   hintText: 'e.g., Mercedes-Benz Travego',
-                  enabled: !isReadOnly,
+                  enabled: false,
                   prefixIcon: Icons.directions_bus_filled_outlined,
                 ),
                 const SizedBox(height: 40),
@@ -384,6 +398,24 @@ class AdminBusesView extends StatelessWidget {
                         child: AppButton(
                           text: isNew ? 'Register Bus' : 'Save Changes',
                           onPressed: () {
+                             if (isNew) {
+                                ref.read(busProvider.notifier).addBus(Bus(
+                                  id: 'B${DateTime.now().millisecondsSinceEpoch}',
+                                  number: numberController.text,
+                                  plateNumber: plateController.text,
+                                  totalSeats: int.tryParse(seatsController.text) ?? 45,
+                                  type: typeController.text,
+                                  status: 'Available',
+                                ));
+                             } else if (bus != null) {
+                                ref.read(busProvider.notifier).updateBus(bus.copyWith(
+                                  number: numberController.text,
+                                  plateNumber: plateController.text,
+                                  totalSeats: int.tryParse(seatsController.text) ?? 45,
+                                  type: typeController.text,
+                                ));
+                             }
+
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -414,7 +446,7 @@ class AdminBusesView extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
+  void _showDeleteConfirmation(BuildContext context, WidgetRef ref, String id) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -437,6 +469,7 @@ class AdminBusesView extends StatelessWidget {
             child: AppButton(
               text: 'Delete',
               onPressed: () {
+                ref.read(busProvider.notifier).removeBus(id);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

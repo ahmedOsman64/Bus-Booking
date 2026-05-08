@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../widgets/app_card.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/app_input.dart';
+import '../../../core/models/booking_model.dart';
+import '../../../core/providers/booking_provider.dart';
 
-class AdminBookingsView extends StatelessWidget {
+class AdminBookingsView extends ConsumerWidget {
   const AdminBookingsView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bookings = ref.watch(bookingProvider);
+    final confirmedCount = bookings.where((b) => b.status == BookingStatus.confirmed).length;
+    final pendingCount = bookings.where((b) => b.status == BookingStatus.pending).length;
+    final cancelledCount = bookings.where((b) => b.status == BookingStatus.cancelled).length;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -17,7 +25,7 @@ class AdminBookingsView extends StatelessWidget {
         children: [
           _buildHeader(context),
           const SizedBox(height: 32),
-          _buildSummaryCards(context),
+          _buildSummaryCards(context, bookings.length, confirmedCount, pendingCount, cancelledCount),
           const SizedBox(height: 32),
           AppCard(
             padding: EdgeInsets.zero,
@@ -44,17 +52,22 @@ class AdminBookingsView extends StatelessWidget {
                 ),
                 _buildTableHeader(),
                 const Divider(height: 1, color: AppColors.borderGray),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(0),
-                  itemCount: 10,
-                  separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderGray),
-                  itemBuilder: (context, index) {
-                    return _buildBookingRow(context, index);
-                  },
-                ),
-                _buildTableFooter(),
+                bookings.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(48.0),
+                        child: Center(child: Text('No bookings found')),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(0),
+                        itemCount: bookings.length,
+                        separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderGray),
+                        itemBuilder: (context, index) {
+                          return _buildBookingRow(context, ref, bookings[index]);
+                        },
+                      ),
+                _buildTableFooter(bookings.length),
               ],
             ),
           ),
@@ -109,18 +122,18 @@ class AdminBookingsView extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCards(BuildContext context) {
+  Widget _buildSummaryCards(BuildContext context, int total, int confirmed, int pending, int cancelled) {
     final bool isDesktop = MediaQuery.of(context).size.width > 1200;
     return Row(
       children: [
-        Expanded(child: _buildSummaryCard('Total Bookings', '1,256', Icons.book_online_rounded, AppColors.info)),
+        Expanded(child: _buildSummaryCard('Total Bookings', total.toString(), Icons.book_online_rounded, AppColors.info)),
         const SizedBox(width: 20),
-        Expanded(child: _buildSummaryCard('Confirmed', '980', Icons.check_circle_rounded, AppColors.success)),
+        Expanded(child: _buildSummaryCard('Confirmed', confirmed.toString(), Icons.check_circle_rounded, AppColors.success)),
         const SizedBox(width: 20),
-        Expanded(child: _buildSummaryCard('Pending', '215', Icons.pending_actions_rounded, AppColors.warning)),
+        Expanded(child: _buildSummaryCard('Pending', pending.toString(), Icons.pending_actions_rounded, AppColors.warning)),
         if (isDesktop) ...[
           const SizedBox(width: 20),
-          Expanded(child: _buildSummaryCard('Cancelled', '61', Icons.cancel_rounded, AppColors.error)),
+          Expanded(child: _buildSummaryCard('Cancelled', cancelled.toString(), Icons.cancel_rounded, AppColors.error)),
         ]
       ],
     );
@@ -171,9 +184,9 @@ class AdminBookingsView extends StatelessWidget {
     );
   }
 
-  Widget _buildBookingRow(BuildContext context, int index) {
-    final status = index % 4 == 0 ? 'Pending' : (index % 5 == 0 ? 'Cancelled' : 'Confirmed');
-    final statusColor = status == 'Confirmed' ? AppColors.success : (status == 'Pending' ? AppColors.warning : AppColors.error);
+  Widget _buildBookingRow(BuildContext context, WidgetRef ref, Booking booking) {
+    final status = booking.status == BookingStatus.confirmed ? 'Confirmed' : (booking.status == BookingStatus.pending ? 'Pending' : 'Cancelled');
+    final statusColor = booking.status == BookingStatus.confirmed ? AppColors.success : (booking.status == BookingStatus.pending ? AppColors.warning : AppColors.error);
 
     return InkWell(
       onTap: () {},
@@ -188,15 +201,15 @@ class AdminBookingsView extends StatelessWidget {
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: AppColors.teal.withValues(alpha: 0.1),
-                    child: Text('${index + 1}', style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: const Icon(Icons.person_rounded, color: AppColors.teal, size: 20),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Passenger Name ${index + 1}', style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                        Text('#BKN-2026${index.toString().padLeft(3, '0')}', style: AppTextStyles.caption),
+                        Text(booking.passengerName, style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                        Text('#${booking.id}', style: AppTextStyles.caption),
                       ],
                     ),
                   ),
@@ -208,18 +221,18 @@ class AdminBookingsView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(index % 2 == 0 ? 'Mogadishu → Afgooye' : 'Mogadishu → Kismayo', style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
-                  Text('May ${10 + index}, 2026', style: AppTextStyles.caption),
+                  Text('${booking.origin} → ${booking.destination}', style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                  Text(booking.travelDate, style: AppTextStyles.caption),
                 ],
               ),
             ),
             Expanded(
               flex: 1,
-              child: Text('${(index % 3) + 1} Seats', style: AppTextStyles.bodyRegular),
+              child: Text('${booking.seatNumbers.length} Seats', style: AppTextStyles.bodyRegular),
             ),
             Expanded(
               flex: 1,
-              child: Text('\$${((index % 3) + 1) * 15}.00', style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkNavy)),
+              child: Text('\$${booking.totalFare.toStringAsFixed(2)}', style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkNavy)),
             ),
             Expanded(
               flex: 1,
@@ -239,9 +252,16 @@ class AdminBookingsView extends StatelessWidget {
                 ),
               ),
             ),
-            IconButton(
+            PopupMenuButton<BookingStatus>(
               icon: const Icon(Icons.more_vert_rounded, color: AppColors.textGray, size: 20),
-              onPressed: () {},
+              onSelected: (newStatus) {
+                ref.read(bookingProvider.notifier).updateBookingStatus(booking.id, newStatus);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: BookingStatus.confirmed, child: Text('Confirm')),
+                const PopupMenuItem(value: BookingStatus.pending, child: Text('Mark Pending')),
+                const PopupMenuItem(value: BookingStatus.cancelled, child: Text('Cancel')),
+              ],
             ),
           ],
         ),
@@ -249,22 +269,20 @@ class AdminBookingsView extends StatelessWidget {
     );
   }
 
-  Widget _buildTableFooter() {
+  Widget _buildTableFooter(int total) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Showing 10 of 1,256 bookings', style: AppTextStyles.caption),
+          Text('Showing $total bookings', style: AppTextStyles.caption),
           Row(
             children: [
               _buildPageButton(Icons.chevron_left_rounded, false),
               const SizedBox(width: 8),
               _buildPageNumber(1, true),
-              _buildPageNumber(2, false),
-              _buildPageNumber(3, false),
               const SizedBox(width: 8),
-              _buildPageButton(Icons.chevron_right_rounded, true),
+              _buildPageButton(Icons.chevron_right_rounded, false),
             ],
           ),
         ],

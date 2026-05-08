@@ -24,8 +24,10 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _views = [
-    const AdminDashboardView(),
+  late final List<Widget> _views = [
+    AdminDashboardView(onNavigate: (index) {
+      setState(() => _selectedIndex = index);
+    }),
     const AdminBookingsView(),
     const AdminRoutesView(),
     const AdminBusesView(),

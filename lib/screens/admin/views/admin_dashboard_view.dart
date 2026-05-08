@@ -1,14 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../widgets/app_card.dart';
+import '../../../core/providers/booking_provider.dart';
+import '../../../core/providers/bus_provider.dart';
+import '../../../core/models/booking_model.dart';
 
-class AdminDashboardView extends StatelessWidget {
-  const AdminDashboardView({super.key});
+class AdminDashboardView extends ConsumerWidget {
+  final Function(int)? onNavigate;
+  const AdminDashboardView({super.key, this.onNavigate});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bool isDesktop = MediaQuery.of(context).size.width > 800;
+    
+    final bookings = ref.watch(bookingProvider);
+    final buses = ref.watch(busProvider);
+
+    final totalRevenue = bookings
+        .where((b) => b.status == BookingStatus.confirmed)
+        .fold(0.0, (sum, b) => sum + b.totalFare);
+    
+    final activeBuses = buses.where((b) => b.status == 'Available' || b.status == 'On Trip').length;
 
     return CustomScrollView(
       slivers: [
@@ -22,7 +36,7 @@ class AdminDashboardView extends StatelessWidget {
                   _buildHeader(context),
                   const SizedBox(height: 32),
                 ],
-                _buildQuickStats(context, isDesktop),
+                _buildQuickStats(context, isDesktop, totalRevenue, bookings.length, activeBuses),
                 const SizedBox(height: 32),
                 _buildQuickActions(),
                 const SizedBox(height: 32),
@@ -32,19 +46,19 @@ class AdminDashboardView extends StatelessWidget {
                     children: [
                       Expanded(
                         flex: 2,
-                        child: _buildRecentBookings(),
+                        child: _buildRecentBookings(bookings),
                       ),
                       const SizedBox(width: 24),
                       Expanded(
                         flex: 1,
-                        child: _buildRevenueSummary(),
+                        child: _buildRevenueSummary(totalRevenue),
                       ),
                     ],
                   )
                 else ...[
-                  _buildRecentBookings(),
+                  _buildRecentBookings(bookings),
                   const SizedBox(height: 32),
-                  _buildRevenueSummary(),
+                  _buildRevenueSummary(totalRevenue),
                 ],
                 const SizedBox(height: 32), // Bottom padding
               ],
@@ -97,7 +111,7 @@ class AdminDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickStats(BuildContext context, bool isDesktop) {
+  Widget _buildQuickStats(BuildContext context, bool isDesktop, double revenue, int totalBookings, int activeBuses) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -106,10 +120,10 @@ class AdminDashboardView extends StatelessWidget {
       mainAxisSpacing: 16,
       childAspectRatio: isDesktop ? 1.4 : 1.6,
       children: [
-        _buildGradientStatCard('Total Revenue', '\$4,240', '+12%', Icons.payments_rounded, const [Color(0xFF11998e), Color(0xFF38ef7d)]),
-        _buildGradientStatCard('Total Bookings', '1,256', '+5%', Icons.confirmation_number_rounded, const [Color(0xFF2F80ED), Color(0xFF56CCF2)]),
-        _buildGradientStatCard('Active Buses', '24', 'Online', Icons.directions_bus_rounded, const [Color(0xFFF2994A), Color(0xFFF2C94C)]),
-        _buildGradientStatCard('Total Users', '3,890', '+18%', Icons.people_rounded, const [Color(0xFF8E2DE2), Color(0xFF4A00E0)]),
+        _buildGradientStatCard('Total Revenue', '\$${revenue.toStringAsFixed(0)}', '+12%', Icons.payments_rounded, const [Color(0xFF11998e), Color(0xFF38ef7d)]),
+        _buildGradientStatCard('Total Bookings', totalBookings.toString(), '+5%', Icons.confirmation_number_rounded, const [Color(0xFF2F80ED), Color(0xFF56CCF2)]),
+        _buildGradientStatCard('Active Buses', activeBuses.toString(), 'Online', Icons.directions_bus_rounded, const [Color(0xFFF2994A), Color(0xFFF2C94C)]),
+        _buildGradientStatCard('Total Users', '12', '+18%', Icons.people_rounded, const [Color(0xFF8E2DE2), Color(0xFF4A00E0)]),
       ],
     );
   }
@@ -209,7 +223,11 @@ class AdminDashboardView extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: () {
+            if (label == 'Add Route' && onNavigate != null) onNavigate!(2);
+            if (label == 'Assign Bus' && onNavigate != null) onNavigate!(3);
+            if (label == 'Reports' && onNavigate != null) onNavigate!(5);
+          },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -233,7 +251,9 @@ class AdminDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentBookings() {
+  Widget _buildRecentBookings(List<Booking> bookings) {
+    final recentBookings = bookings.reversed.take(6).toList();
+
     return AppCard(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -254,66 +274,72 @@ class AdminDashboardView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 6,
-            separatorBuilder: (context, index) => const Divider(height: 24, color: AppColors.borderGray),
-            itemBuilder: (context, index) {
-              final status = index % 3 == 0 ? 'Pending' : (index % 4 == 0 ? 'Cancelled' : 'Completed');
-              final statusColor = status == 'Completed' ? AppColors.success : (status == 'Pending' ? AppColors.warning : AppColors.error);
+          recentBookings.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Center(child: Text('No recent bookings')),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: recentBookings.length,
+                  separatorBuilder: (context, index) => const Divider(height: 24, color: AppColors.borderGray),
+                  itemBuilder: (context, index) {
+                    final booking = recentBookings[index];
+                    final status = booking.status == BookingStatus.confirmed ? 'Confirmed' : (booking.status == BookingStatus.pending ? 'Pending' : 'Cancelled');
+                    final statusColor = booking.status == BookingStatus.confirmed ? AppColors.success : (booking.status == BookingStatus.pending ? AppColors.warning : AppColors.error);
 
-              return Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppColors.mediumGray,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.person_outline_rounded, color: AppColors.teal),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    return Row(
                       children: [
-                        Text('Passenger ${index + 1}', style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text('Mogadishu → Afgooye • 10:30 AM', style: AppTextStyles.caption),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.mediumGray,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.person_outline_rounded, color: AppColors.teal),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(booking.passengerName, style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              Text('${booking.origin} → ${booking.destination} • ${booking.travelDate}', style: AppTextStyles.caption),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text('\$${booking.totalFare.toStringAsFixed(2)}', style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                              ),
+                              child: Text(
+                                status,
+                                style: AppTextStyles.caption.copyWith(color: statusColor, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('\$15.00', style: AppTextStyles.bodyRegular.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          status,
-                          style: AppTextStyles.caption.copyWith(color: statusColor, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
+                    );
+                  },
+                ),
         ],
       ),
     );
   }
 
-  Widget _buildRevenueSummary() {
+  Widget _buildRevenueSummary(double totalRevenue) {
     return AppCard(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -346,9 +372,9 @@ class AdminDashboardView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMiniStat('Today', '\$450'),
-              _buildMiniStat('This Week', '\$3,240'),
-              _buildMiniStat('This Month', '\$12,500'),
+              _buildMiniStat('Today', '\$${(totalRevenue * 0.1).toStringAsFixed(0)}'),
+              _buildMiniStat('This Week', '\$${(totalRevenue * 0.4).toStringAsFixed(0)}'),
+              _buildMiniStat('This Month', '\$${totalRevenue.toStringAsFixed(0)}'),
             ],
           ),
         ],

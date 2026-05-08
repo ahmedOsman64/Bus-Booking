@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/app_button.dart';
+import '../../core/providers/booking_provider.dart';
 import 'passenger_info_screen.dart';
 
-class BookingScreen extends StatefulWidget {
+class BookingScreen extends ConsumerStatefulWidget {
   final String origin;
   final String destination;
   final String time;
   final String price;
   final String bus;
+  final DateTime travelDate;
 
   const BookingScreen({
     super.key,
@@ -18,15 +21,15 @@ class BookingScreen extends StatefulWidget {
     required this.time,
     required this.price,
     required this.bus,
+    required this.travelDate,
   });
 
   @override
-  State<BookingScreen> createState() => _BookingScreenState();
+  ConsumerState<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen> {
+class _BookingScreenState extends ConsumerState<BookingScreen> {
   final Set<int> _selectedSeats = {};
-  final List<int> _occupiedSeats = [3, 5, 8, 12, 13, 20, 21];
 
   double get _totalPrice {
     final priceValue =
@@ -36,6 +39,16 @@ class _BookingScreenState extends State<BookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bookings = ref.watch(bookingProvider);
+    final currentRouteBookings = bookings.where((b) => 
+      b.origin == widget.origin && 
+      b.destination == widget.destination && 
+      b.travelTime == widget.time &&
+      b.travelDate == '${widget.travelDate.day}/${widget.travelDate.month}/${widget.travelDate.year}'
+    ).toList();
+    
+    final occupiedSeats = currentRouteBookings.expand((b) => b.seatNumbers).toSet();
+
     return Scaffold(
       backgroundColor: AppColors.lightGray,
       appBar: AppBar(
@@ -55,7 +68,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 children: [
                   _buildSeatLegend(),
                   const SizedBox(height: 32),
-                  _buildBusLayout(),
+                  _buildBusLayout(occupiedSeats),
                 ],
               ),
             ),
@@ -171,7 +184,7 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _buildBusLayout() {
+  Widget _buildBusLayout(Set<int> occupiedSeats) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -218,7 +231,7 @@ class _BookingScreenState extends State<BookingScreen> {
             itemCount: 28,
             itemBuilder: (context, index) {
               final seatNumber = index + 1;
-              final isOccupied = _occupiedSeats.contains(seatNumber);
+              final isOccupied = occupiedSeats.contains(seatNumber);
               final isSelected = _selectedSeats.contains(seatNumber);
 
               if (index % 4 == 2) return const SizedBox.shrink();
@@ -378,6 +391,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             time: widget.time,
                             price: '\$${_totalPrice.toStringAsFixed(2)}',
                             bus: widget.bus,
+                            travelDate: widget.travelDate,
                           ),
                         ),
                       );

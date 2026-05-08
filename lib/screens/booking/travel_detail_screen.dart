@@ -10,6 +10,7 @@ class TravelDetailScreen extends StatelessWidget {
   final String time;
   final String price;
   final String bus;
+  final DateTime travelDate;
 
   const TravelDetailScreen({
     super.key,
@@ -18,6 +19,7 @@ class TravelDetailScreen extends StatelessWidget {
     required this.time,
     required this.price,
     required this.bus,
+    required this.travelDate,
   });
 
   @override
@@ -313,6 +315,7 @@ class TravelDetailScreen extends StatelessWidget {
                       time: time,
                       price: price,
                       bus: bus,
+                      travelDate: travelDate,
                     ),
                   ),
                 );

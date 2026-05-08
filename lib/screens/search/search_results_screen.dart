@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/app_card.dart';
 import '../booking/travel_detail_screen.dart';
+import '../../core/providers/route_provider.dart';
+import '../../core/models/route_model.dart';
 
-class SearchResultsScreen extends StatelessWidget {
+class SearchResultsScreen extends ConsumerWidget {
   final String origin;
   final String destination;
   final DateTime date;
@@ -17,7 +20,13 @@ class SearchResultsScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final routes = ref.watch(routeProvider);
+    final filteredRoutes = routes.where((r) => 
+      r.origin.toLowerCase() == origin.toLowerCase() && 
+      r.destination.toLowerCase() == destination.toLowerCase()
+    ).toList();
+
     return Scaffold(
       backgroundColor: AppColors.lightGray,
       appBar: AppBar(
@@ -35,35 +44,45 @@ class SearchResultsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: 5, // Mock data
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: _buildTravelCard(context, index),
-          );
-        },
-      ),
+      body: filteredRoutes.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.search_off_rounded, size: 64, color: AppColors.textGray),
+                  const SizedBox(height: 16),
+                  Text('No travels found for this route', style: AppTextStyles.bodyLarge),
+                  const SizedBox(height: 8),
+                  Text('Try another route or date', style: AppTextStyles.caption),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: filteredRoutes.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildTravelCard(context, filteredRoutes[index]),
+                );
+              },
+            ),
     );
   }
 
-  Widget _buildTravelCard(BuildContext context, int index) {
-    final times = ['08:00 AM', '10:00 AM', '01:00 PM', '03:00 PM', '05:00 PM'];
-    final prices = ['\$5.00', '\$6.00', '\$5.50', '\$7.00', '\$5.00'];
-    final buses = ['Toyota Coaster', 'Isuzu Journey', 'Hyundai County', 'Nissan Civilian', 'Toyota Hiace'];
-
+  Widget _buildTravelCard(BuildContext context, BusRoute route) {
     return AppCard(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => TravelDetailScreen(
-              origin: origin,
-              destination: destination,
-              time: times[index % times.length],
-              price: prices[index % prices.length],
-              bus: buses[index % buses.length],
+              origin: route.origin,
+              destination: route.destination,
+              time: route.departureTime,
+              price: '\$${route.price.toStringAsFixed(2)}',
+              bus: route.busId,
+              travelDate: date,
             ),
           ),
         );
@@ -82,7 +101,7 @@ class SearchResultsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          times[index % times.length],
+                          route.departureTime,
                           style: AppTextStyles.h2.copyWith(color: AppColors.darkNavy),
                         ),
                         const SizedBox(height: 4),
@@ -91,7 +110,7 @@ class SearchResultsScreen extends StatelessWidget {
                             const Icon(Icons.directions_bus_filled_rounded, size: 14, color: AppColors.textGray),
                             const SizedBox(width: 6),
                             Text(
-                              buses[index % buses.length],
+                              route.busId,
                               style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGray),
                             ),
                           ],
@@ -102,7 +121,7 @@ class SearchResultsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          prices[index % prices.length],
+                          '\$${route.price.toStringAsFixed(2)}',
                           style: AppTextStyles.h2.copyWith(color: AppColors.teal),
                         ),
                         const SizedBox(height: 4),
@@ -128,7 +147,7 @@ class SearchResultsScreen extends StatelessWidget {
                         const Icon(Icons.airline_seat_recline_normal_rounded, size: 16, color: AppColors.success),
                         const SizedBox(width: 4),
                         Text(
-                          '12 left',
+                          'Available',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.success,
                             fontWeight: FontWeight.bold,
@@ -162,7 +181,7 @@ class SearchResultsScreen extends StatelessWidget {
                       style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(width: 4),
-                    Text('(120 reviews)', style: AppTextStyles.caption.copyWith(color: AppColors.textGray)),
+                    Text('(New)', style: AppTextStyles.caption.copyWith(color: AppColors.textGray)),
                   ],
                 ),
                 Text(

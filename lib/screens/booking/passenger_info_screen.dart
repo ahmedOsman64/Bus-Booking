@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_input.dart';
+import '../../core/models/booking_model.dart';
+import '../../core/providers/booking_provider.dart';
 
-class PassengerInfoScreen extends StatefulWidget {
+class PassengerInfoScreen extends ConsumerStatefulWidget {
   final List<int> seatNumbers;
   final String origin;
   final String destination;
   final String time;
   final String price;
   final String bus;
+  final DateTime travelDate;
 
   const PassengerInfoScreen({
     super.key,
@@ -20,13 +24,14 @@ class PassengerInfoScreen extends StatefulWidget {
     required this.time,
     required this.price,
     required this.bus,
+    required this.travelDate,
   });
 
   @override
-  State<PassengerInfoScreen> createState() => _PassengerInfoScreenState();
+  ConsumerState<PassengerInfoScreen> createState() => _PassengerInfoScreenState();
 }
 
-class _PassengerInfoScreenState extends State<PassengerInfoScreen> {
+class _PassengerInfoScreenState extends ConsumerState<PassengerInfoScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _idController = TextEditingController();
@@ -61,7 +66,15 @@ class _PassengerInfoScreenState extends State<PassengerInfoScreen> {
             const SizedBox(height: 40),
             AppButton(
               text: 'Review & Pay',
-              onPressed: () => _showConfirmationDialog(),
+              onPressed: () {
+                if (_nameController.text.isEmpty || _phoneController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please fill in required fields')),
+                  );
+                  return;
+                }
+                _showConfirmationDialog();
+              },
             ),
             const SizedBox(height: 40),
           ],
@@ -235,6 +248,24 @@ class _PassengerInfoScreenState extends State<PassengerInfoScreen> {
             AppButton(
               text: 'Confirm & Pay',
               onPressed: () {
+                final booking = Booking(
+                  id: 'BKN-${DateTime.now().millisecondsSinceEpoch}',
+                  passengerName: _nameController.text,
+                  passengerPhone: _phoneController.text,
+                  passengerId: _idController.text,
+                  origin: widget.origin,
+                  destination: widget.destination,
+                  travelTime: widget.time,
+                  travelDate: '${widget.travelDate.day}/${widget.travelDate.month}/${widget.travelDate.year}',
+                  busName: widget.bus,
+                  seatNumbers: widget.seatNumbers,
+                  totalFare: double.tryParse(widget.price.replaceAll('\$', '')) ?? 0.0,
+                  status: BookingStatus.confirmed,
+                  createdAt: DateTime.now(),
+                );
+
+                ref.read(bookingProvider.notifier).addBooking(booking);
+
                 Navigator.pop(context);
                 _showFinalSuccessDialog();
               },
@@ -286,3 +317,4 @@ class _PassengerInfoScreenState extends State<PassengerInfoScreen> {
     );
   }
 }
+
