@@ -4,7 +4,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/splash_screen.dart';
-
 import 'core/services/supabase_service.dart';
 
 void main() async {
