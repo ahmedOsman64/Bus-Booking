@@ -3,7 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_input.dart';
-import 'otp_verification_screen.dart';
+import '../../core/services/supabase_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -119,10 +119,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                           const SizedBox(height: 32),
                           AppButton(
-                            text: 'Send OTP',
+                            text: 'Send Reset Link',
                             isLoading: _isLoading,
                             onPressed: () async {
-                              if (_emailController.text.isEmpty) {
+                              final email = _emailController.text.trim();
+                              if (email.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Please enter your email')),
                                 );
@@ -131,18 +132,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                               setState(() => _isLoading = true);
                               
-                              // Simulate API call
-                              await Future.delayed(const Duration(seconds: 2));
-                              
-                              if (!context.mounted) return;
-                              setState(() => _isLoading = false);
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => OtpVerificationScreen(email: _emailController.text),
-                                ),
-                              );
+                              try {
+                                if (!SupabaseService.isInitialized) {
+                                  throw Exception('Supabase is not configured yet.');
+                                }
+                                
+                                await SupabaseService.resetPassword(email);
+                                
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Password reset link sent to your email!')),
+                                );
+                                Navigator.pop(context);
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              } finally {
+                                if (mounted) setState(() => _isLoading = false);
+                              }
                             },
                           ),
                         ],

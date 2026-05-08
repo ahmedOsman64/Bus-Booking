@@ -68,13 +68,51 @@ ALTER TABLE public.routes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
--- Basic Policies (To be refined)
-CREATE POLICY "Public profiles are viewable by everyone." ON public.profiles FOR SELECT USING (true);
+-- Basic Policies
+-- 1. Profiles
+CREATE POLICY "Public profiles are viewable by everyone." ON public.profiles FOR SELECT USING (true); -- Usually true for basic info, but let's restrict if needed
+-- To be stricter:
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
+CREATE POLICY "Users can view their own profile." ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Admins can view all profiles." ON public.profiles FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
 CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
+-- 2. Buses
 CREATE POLICY "Buses are viewable by everyone." ON public.buses FOR SELECT USING (true);
-CREATE POLICY "Routes are viewable by everyone." ON public.routes FOR SELECT USING (true);
-CREATE POLICY "Trips are viewable by everyone." ON public.trips FOR SELECT USING (true);
+CREATE POLICY "Only admins can modify buses." ON public.buses FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
+-- 3. Routes
+CREATE POLICY "Routes are viewable by everyone." ON public.routes FOR SELECT USING (true);
+CREATE POLICY "Only admins can modify routes." ON public.routes FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- 4. Trips
+CREATE POLICY "Trips are viewable by everyone." ON public.trips FOR SELECT USING (true);
+CREATE POLICY "Only admins can modify trips." ON public.trips FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- 5. Bookings
 CREATE POLICY "Users can view their own bookings." ON public.bookings FOR SELECT USING (auth.uid() = passenger_id);
+CREATE POLICY "Admins can view all bookings." ON public.bookings FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
 CREATE POLICY "Users can create their own bookings." ON public.bookings FOR INSERT WITH CHECK (auth.uid() = passenger_id);
+CREATE POLICY "Only admins can delete bookings." ON public.bookings FOR DELETE USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- 6. Performance Indexes (For 10,000+ users)
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+CREATE INDEX IF NOT EXISTS idx_buses_status ON public.buses(status);
+CREATE INDEX IF NOT EXISTS idx_trips_departure ON public.trips(departure_time);
+CREATE INDEX IF NOT EXISTS idx_trips_route_id ON public.trips(route_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_passenger_id ON public.bookings(passenger_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_trip_id ON public.bookings(trip_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_status ON public.bookings(status);

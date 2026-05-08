@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_input.dart';
+import '../../core/services/supabase_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -135,7 +136,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 32),
                         AppButton(
                           text: 'Create Account',
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () async {
+                            final name = _nameController.text.trim();
+                            final email = _emailController.text.trim();
+                            final phone = _phoneController.text.trim();
+                            final password = _passwordController.text;
+
+                            if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please fill all fields')),
+                              );
+                              return;
+                            }
+
+                            try {
+                              if (!SupabaseService.isInitialized) {
+                                throw Exception('Supabase is not configured yet.');
+                              }
+
+                              final names = name.split(' ');
+                              final firstName = names[0];
+                              final lastName = names.length > 1 ? names.sublist(1).join(' ') : '';
+
+                              final response = await SupabaseService.signUp(
+                                email: email,
+                                password: password,
+                                data: {
+                                  'first_name': firstName,
+                                  'last_name': lastName,
+                                  'phone_number': phone,
+                                  'role': 'passenger',
+                                },
+                              );
+
+                              if (response.user != null) {
+                                // Create profile entry (handled by trigger or manually)
+                                // In this schema, we need to ensure profiles table is updated
+                                await SupabaseService.client.from('profiles').insert({
+                                  'id': response.user!.id,
+                                  'first_name': firstName,
+                                  'last_name': lastName,
+                                  'email': email,
+                                  'phone_number': phone,
+                                  'role': 'passenger',
+                                  'status': 'active',
+                                });
+
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Account created successfully! Please login.')),
+                                );
+                                Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Registration failed: $e')),
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),

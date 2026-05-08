@@ -9,6 +9,7 @@ class BusNotifier extends StateNotifier<List<Bus>> {
   }
 
   Future<void> fetchBuses() async {
+    if (!SupabaseService.isInitialized) return;
     try {
       final List<dynamic> data = await SupabaseService.client.from('buses').select();
       state = data.map((e) => Bus.fromMap(e)).toList();

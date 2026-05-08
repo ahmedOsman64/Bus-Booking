@@ -7,6 +7,7 @@ import '../../widgets/app_input.dart';
 import 'register_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../../core/services/supabase_service.dart';
 import 'forgot_password_screen.dart';
 
 
@@ -201,31 +202,60 @@ class _LoginScreenState extends State<LoginScreen> {
                               final email = _emailController.text.trim();
                               final password = _passwordController.text;
 
-                              if (email == 'admin@busbooking.com' &&
-                                  password == 'admin123') {
-                                await AuthService.saveSession(
+                              if (email.isEmpty || password.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please fill all fields')),
+                                );
+                                return;
+                              }
+
+                              try {
+                                if (!SupabaseService.isInitialized) {
+                                  throw Exception('Supabase is not configured yet.');
+                                }
+
+                                final response = await SupabaseService.signIn(
                                   email: email,
-                                  role: 'admin',
+                                  password: password,
                                 );
+
+                                if (response.user != null) {
+                                  // Fetch user role from profiles table
+                                  final userData = await SupabaseService.client
+                                      .from('profiles')
+                                      .select()
+                                      .eq('id', response.user!.id)
+                                      .single();
+
+                                  final role = userData['role'] ?? 'passenger';
+
+                                  await AuthService.saveSession(
+                                    email: email,
+                                    role: role,
+                                  );
+
+                                  if (!context.mounted) return;
+                                  
+                                  if (role == 'admin') {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const AdminDashboardScreen(),
+                                      ),
+                                    );
+                                  } else {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const DashboardScreen(),
+                                      ),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
                                 if (!context.mounted) return;
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const AdminDashboardScreen(),
-                                  ),
-                                );
-                              } else {
-                                await AuthService.saveSession(
-                                  email: email,
-                                  role: 'user',
-                                );
-                                if (!context.mounted) return;
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const DashboardScreen(),
-                                  ),
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Login failed: $e')),
                                 );
                               }
                             },

@@ -10,19 +10,22 @@ import '../profile/booking_history_screen.dart';
 import '../profile/profile_screen.dart';
 import 'notifications_screen.dart';
 
-class DashboardScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/route_provider.dart';
+import '../../core/providers/booking_provider.dart';
+import '../../core/providers/user_provider.dart';
+import '../../core/models/booking_model.dart';
+
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
 
-  final List<String> _origins = ['Mogadishu', 'Afgooye', 'Jowhar', 'Beledweyne', 'Kismayo'];
-  final List<String> _destinations = ['Mogadishu', 'Afgooye', 'Jowhar', 'Beledweyne', 'Baidoa'];
-  
   String? _selectedOrigin;
   String? _selectedDestination;
   DateTime _selectedDate = DateTime.now();
@@ -54,12 +57,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildHome() {
+    final routes = ref.watch(routeProvider);
+    final bookings = ref.watch(bookingProvider);
+    final user = ref.watch(userProvider);
+    
+    final origins = routes.map((r) => r.origin).toSet().toList();
+    final destinations = routes.map((r) => r.destination).toSet().toList();
+    
+    // Find latest confirmed booking
+    final upcomingBooking = bookings.isNotEmpty 
+        ? (bookings.where((b) => b.status == BookingStatus.confirmed).toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
+        : [];
+
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Stack(
             children: [
-              // Header Background with subtle texture/gradient
               Container(
                 height: 300,
                 decoration: const BoxDecoration(
@@ -74,8 +89,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-              
-              // Animated Decorative Elements
               Positioned(
                 top: -50,
                 right: -50,
@@ -84,15 +97,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   backgroundColor: Colors.white.withValues(alpha: 0.05),
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 60, 24, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(),
+                    _buildHeader(user.isNotEmpty ? user.first.firstName : 'Ahmed'),
                     const SizedBox(height: 32),
-                    _buildSearchCard(),
+                    _buildSearchCard(origins, destinations),
                   ],
                 ),
               ),
@@ -107,19 +119,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Recent Searches', style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.bold)),
+                Text('Popular Routes', style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 SizedBox(
                   height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: 3,
-                    itemBuilder: (context, index) {
-                      final origins = ['Mogadishu', 'Afgooye', 'Jowhar'];
-                      final dests = ['Baidoa', 'Beledweyne', 'Mogadishu'];
-                      return _buildRecentSearchItem(origins[index], dests[index]);
-                    },
-                  ),
+                  child: routes.isEmpty 
+                    ? Center(child: Text('Loading routes...', style: AppTextStyles.caption))
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: routes.length > 5 ? 5 : routes.length,
+                        itemBuilder: (context, index) {
+                          return _buildRecentSearchItem(routes[index].origin, routes[index].destination);
+                        },
+                      ),
                 ),
               ],
             ),
@@ -152,7 +164,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildUpcomingTripCard(),
+                upcomingBooking.isEmpty 
+                    ? _buildEmptyState()
+                    : _buildUpcomingTripCard(upcomingBooking.first as Booking),
               ],
             ),
           ),
@@ -162,7 +176,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.borderGray.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.directions_bus_outlined, size: 48, color: AppColors.textGray.withValues(alpha: 0.3)),
+          const SizedBox(height: 16),
+          Text('No upcoming trips', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textGray)),
+          const SizedBox(height: 8),
+          Text('Your confirmed bookings will appear here.', style: AppTextStyles.caption, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(String name) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -170,7 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hello, Ahmed!',
+              'Hello, $name!',
               style: AppTextStyles.h1.copyWith(color: Colors.white, fontSize: 28),
             ),
             const SizedBox(height: 6),
@@ -207,7 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildSearchCard() {
+  Widget _buildSearchCard(List<String> origins, List<String> destinations) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -228,7 +263,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             iconColor: AppColors.teal,
             label: 'From',
             value: _selectedOrigin ?? 'Select Origin',
-            onTap: () => _showSelectionModal('Origin', _origins, (val) {
+            onTap: () => _showSelectionModal('Origin', origins, (val) {
               setState(() => _selectedOrigin = val);
             }),
           ),
@@ -254,7 +289,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             iconColor: AppColors.warmCoral,
             label: 'To',
             value: _selectedDestination ?? 'Select Destination',
-            onTap: () => _showSelectionModal('Destination', _destinations, (val) {
+            onTap: () => _showSelectionModal('Destination', destinations, (val) {
               setState(() => _selectedDestination = val);
             }),
           ),
@@ -391,7 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildUpcomingTripCard() {
+  Widget _buildUpcomingTripCard(Booking booking) {
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = 2),
       child: Container(
@@ -430,7 +465,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     Text(
-                      'Ticket #B12345',
+                      'Ticket #${booking.id.split('-').last}',
                       style: AppTextStyles.caption.copyWith(color: AppColors.textGray),
                     ),
                   ],
@@ -442,7 +477,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Row(
                       children: [
-                        _buildStationInfo('Mogadishu', '08:00 AM', true),
+                        _buildStationInfo(booking.origin, booking.travelTime, true),
                         Expanded(
                           child: Column(
                             children: [
@@ -462,17 +497,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ],
                           ),
                         ),
-                        _buildStationInfo('Afgooye', '10:00 AM', false),
+                        _buildStationInfo(booking.destination, 'Arrival', false),
                       ],
                     ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildTripMeta(Icons.calendar_today_rounded, 'Aug 15, 2025'),
-                        _buildTripMeta(Icons.airline_seat_recline_normal_rounded, 'Seat 12'),
+                        _buildTripMeta(Icons.calendar_today_rounded, booking.travelDate),
+                        _buildTripMeta(Icons.airline_seat_recline_normal_rounded, 'Seat ${booking.seatNumbers.join(', ')}'),
                         Text(
-                          '\$5.00',
+                          '\$${booking.totalFare.toStringAsFixed(2)}',
                           style: AppTextStyles.h3.copyWith(color: AppColors.darkNavy),
                         ),
                       ],

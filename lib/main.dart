@@ -11,7 +11,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Supabase
-  await SupabaseService.initialize();
+  try {
+    await SupabaseService.initialize();
+  } catch (e) {
+    debugPrint('Supabase initialization failed: $e');
+  }
 
   runApp(
     const ProviderScope(

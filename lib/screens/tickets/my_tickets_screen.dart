@@ -4,11 +4,15 @@ import '../../core/theme/app_text_styles.dart';
 import '../../widgets/app_card.dart';
 import 'ticket_detail_screen.dart';
 
-class MyTicketsScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/booking_provider.dart';
+import '../../core/models/booking_model.dart';
+
+class MyTicketsScreen extends ConsumerWidget {
   const MyTicketsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -73,8 +77,8 @@ class MyTicketsScreen extends StatelessWidget {
             Expanded(
               child: TabBarView(
                 children: [
-                  _buildTicketsList(context, true),
-                  _buildTicketsList(context, false),
+                  _buildTicketsList(context, ref, true),
+                  _buildTicketsList(context, ref, false),
                 ],
               ),
             ),
@@ -84,10 +88,15 @@ class MyTicketsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTicketsList(BuildContext context, bool isActive) {
-    final ticketCount = isActive ? 2 : 5;
+  Widget _buildTicketsList(BuildContext context, WidgetRef ref, bool isActive) {
+    final bookings = ref.watch(bookingProvider);
     
-    if (ticketCount == 0) {
+    // Simple filter: confirmed = active, others = past (or based on date)
+    final filteredBookings = isActive 
+        ? bookings.where((b) => b.status == BookingStatus.confirmed).toList()
+        : bookings.where((b) => b.status == BookingStatus.cancelled).toList();
+    
+    if (filteredBookings.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -95,7 +104,7 @@ class MyTicketsScreen extends StatelessWidget {
             Icon(Icons.confirmation_number_outlined, size: 80, color: AppColors.textGray.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             Text(
-              'No tickets found',
+              isActive ? 'No active tickets' : 'No past trips',
               style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textGray),
             ),
           ],
@@ -105,31 +114,32 @@ class MyTicketsScreen extends StatelessWidget {
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
-      itemCount: ticketCount,
+      itemCount: filteredBookings.length,
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 20),
-          child: _buildTicketCard(context, isActive, index),
+          child: _buildTicketCard(context, filteredBookings[index]),
         );
       },
     );
   }
 
-  Widget _buildTicketCard(BuildContext context, bool isActive, int index) {
+  Widget _buildTicketCard(BuildContext context, Booking booking) {
+    final bool isActive = booking.status == BookingStatus.confirmed;
     return AppCard(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => TicketDetailScreen(
-              bookingId: 'B12345$index',
-              origin: 'Mogadishu',
-              destination: 'Afgooye',
-              date: 'Aug 15, 2025',
-              time: '08:00 AM',
-              seat: '12',
-              bus: 'B001',
-              price: '\$5.00',
+              bookingId: booking.id,
+              origin: booking.origin,
+              destination: booking.destination,
+              date: booking.travelDate,
+              time: booking.travelTime,
+              seat: booking.seatNumbers.join(', '),
+              bus: booking.busName,
+              price: '\$${booking.totalFare.toStringAsFixed(2)}',
             ),
           ),
         );
@@ -139,7 +149,6 @@ class MyTicketsScreen extends StatelessWidget {
         children: [
           Column(
             children: [
-              // Ticket Header with subtle pattern or clear spacing
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 decoration: BoxDecoration(
@@ -157,7 +166,7 @@ class MyTicketsScreen extends StatelessWidget {
                         Icon(Icons.confirmation_number_rounded, color: AppColors.teal.withValues(alpha: 0.5), size: 16),
                         const SizedBox(width: 8),
                         Text(
-                          'B12345$index',
+                          booking.id.split('-').last,
                           style: AppTextStyles.caption.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.textGray,
@@ -175,10 +184,9 @@ class MyTicketsScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                 child: Column(
                   children: [
-                    // Route Visual
                     Row(
                       children: [
-                        _buildLocationInfo('Mogadishu', '08:00 AM', true),
+                        _buildLocationInfo(booking.origin, booking.travelTime, true),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Stack(
@@ -208,13 +216,12 @@ class MyTicketsScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        _buildLocationInfo('Afgooye', '10:00 AM', false),
+                        _buildLocationInfo(booking.destination, 'Arrival', false),
                       ],
                     ),
                     
                     const SizedBox(height: 24),
                     
-                    // Footer Info
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -224,9 +231,9 @@ class MyTicketsScreen extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildTicketInfo('Date', 'Aug 15'),
-                          _buildTicketInfo('Seat', '12'),
-                          _buildTicketInfo('Price', '\$5.00', isAccent: true),
+                          _buildTicketInfo('Date', booking.travelDate),
+                          _buildTicketInfo('Seats', booking.seatNumbers.join(', ')),
+                          _buildTicketInfo('Price', '\$${booking.totalFare.toStringAsFixed(2)}', isAccent: true),
                         ],
                       ),
                     ),

@@ -9,6 +9,7 @@ class UserNotifier extends StateNotifier<List<User>> {
   }
 
   Future<void> fetchUsers() async {
+    if (!SupabaseService.isInitialized) return;
     try {
       final List<dynamic> data = await SupabaseService.client.from('profiles').select();
       state = data.map((e) => User.fromMap(e)).toList();

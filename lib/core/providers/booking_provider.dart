@@ -8,10 +8,24 @@ class BookingNotifier extends StateNotifier<List<Booking>> {
     fetchBookings();
   }
 
-  Future<void> fetchBookings() async {
+  Future<void> fetchBookings({int page = 0, int pageSize = 20}) async {
+    if (!SupabaseService.isInitialized) return;
     try {
-      final List<dynamic> data = await SupabaseService.client.from('bookings').select();
-      state = data.map((e) => Booking.fromMap(e)).toList();
+      final from = page * pageSize;
+      final to = from + pageSize - 1;
+
+      final List<dynamic> data = await SupabaseService.client
+          .from('bookings')
+          .select()
+          .order('created_at', ascending: false)
+          .range(from, to);
+      
+      final newBookings = data.map((e) => Booking.fromMap(e)).toList();
+      if (page == 0) {
+        state = newBookings;
+      } else {
+        state = [...state, ...newBookings];
+      }
     } catch (e) {
       // debugPrint('Error fetching bookings: $e');
     }
