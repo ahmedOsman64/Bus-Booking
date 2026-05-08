@@ -108,7 +108,7 @@ class AdminRoutesView extends ConsumerWidget {
                             Expanded(
                               child: AppInput(
                                 label: 'Origin Point',
-                                hintText: 'e.g., Mogadishu',
+                                hintText: 'Enter origin point',
                                 prefixIcon: Icons.trip_origin_rounded,
                                 controller: originController,
                                 validator: (val) => val == null || val.isEmpty ? 'Required' : null,
@@ -118,7 +118,7 @@ class AdminRoutesView extends ConsumerWidget {
                             Expanded(
                               child: AppInput(
                                 label: 'Destination',
-                                hintText: 'e.g., Kismayo',
+                                hintText: 'Enter destination',
                                 prefixIcon: Icons.location_on_rounded,
                                 controller: destinationController,
                                 validator: (val) => val == null || val.isEmpty ? 'Required' : null,
@@ -166,13 +166,13 @@ class AdminRoutesView extends ConsumerWidget {
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            Expanded(child: AppInput(label: r'Price ($)', hintText: '15.00', keyboardType: TextInputType.number, prefixIcon: Icons.attach_money_rounded, controller: priceController)),
+                            Expanded(child: AppInput(label: r'Price ($)', hintText: 'Enter ticket price', keyboardType: TextInputType.number, prefixIcon: Icons.attach_money_rounded, controller: priceController)),
                             const SizedBox(width: 16),
-                            Expanded(child: AppInput(label: 'Distance (km)', hintText: '500', keyboardType: TextInputType.number, prefixIcon: Icons.route_rounded, controller: distanceController)),
+                            Expanded(child: AppInput(label: 'Distance (km)', hintText: 'Enter distance', keyboardType: TextInputType.number, prefixIcon: Icons.route_rounded, controller: distanceController)),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        AppInput(label: 'Boarding Points', hintText: 'e.g., KM4, Benadir', prefixIcon: Icons.location_city_rounded, controller: boardingController),
+                        AppInput(label: 'Boarding Points', hintText: 'Enter boarding points', prefixIcon: Icons.location_city_rounded, controller: boardingController),
                         const SizedBox(height: 16),
                         Row(
                           children: [

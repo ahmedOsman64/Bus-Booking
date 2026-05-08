@@ -168,7 +168,7 @@ class _PassengerInfoScreenState extends ConsumerState<PassengerInfoScreen> {
           const SizedBox(height: 20),
           AppInput(
             label: 'Phone Number',
-            hintText: '+252 61 XXX XXXX',
+            hintText: 'Enter phone number',
             controller: _phoneController,
             prefixIcon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
@@ -196,14 +196,14 @@ class _PassengerInfoScreenState extends ConsumerState<PassengerInfoScreen> {
         children: [
           AppInput(
             label: 'Contact Name',
-            hintText: 'Name of emergency contact',
+            hintText: 'Enter emergency contact name',
             controller: _emergencyNameController,
             prefixIcon: Icons.person_add_alt_1_outlined,
           ),
           const SizedBox(height: 20),
           AppInput(
             label: 'Contact Phone',
-            hintText: 'Phone of emergency contact',
+            hintText: 'Enter emergency contact phone',
             controller: _emergencyPhoneController,
             prefixIcon: Icons.contact_phone_outlined,
             keyboardType: TextInputType.phone,

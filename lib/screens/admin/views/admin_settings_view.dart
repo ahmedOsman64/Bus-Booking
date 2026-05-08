@@ -169,17 +169,17 @@ class _AdminSettingsViewState extends State<AdminSettingsView> {
             children: [
               const Row(
                 children: [
-                  Expanded(child: AppInput(label: 'Platform Name', hintText: 'SomBus Admin', prefixIcon: Icons.business_rounded)),
+                  Expanded(child: AppInput(label: 'Platform Name', hintText: 'Enter platform name', prefixIcon: Icons.business_rounded)),
                   SizedBox(width: 16),
-                  Expanded(child: AppInput(label: 'Support Email', hintText: 'support@sombus.com', prefixIcon: Icons.contact_support_rounded)),
+                  Expanded(child: AppInput(label: 'Support Email', hintText: 'Enter support email', prefixIcon: Icons.contact_support_rounded)),
                 ],
               ),
               const SizedBox(height: 24),
               const Row(
                 children: [
-                  Expanded(child: AppInput(label: 'Base Currency', hintText: 'USD (\$)', prefixIcon: Icons.payments_rounded)),
+                  Expanded(child: AppInput(label: 'Base Currency', hintText: 'Enter base currency', prefixIcon: Icons.payments_rounded)),
                   SizedBox(width: 16),
-                  Expanded(child: AppInput(label: 'System Timezone', hintText: 'Africa/Mogadishu', prefixIcon: Icons.public_rounded)),
+                  Expanded(child: AppInput(label: 'System Timezone', hintText: 'Enter system timezone', prefixIcon: Icons.public_rounded)),
                 ],
               ),
               const SizedBox(height: 32),

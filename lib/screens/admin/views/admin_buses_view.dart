@@ -248,9 +248,9 @@ class AdminBusesView extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              const AppInput(label: 'Status', hintText: 'Any Status', prefixIcon: Icons.info_outline_rounded),
+              const AppInput(label: 'Status', hintText: 'Enter status', prefixIcon: Icons.info_outline_rounded),
               const SizedBox(height: 16),
-              const AppInput(label: 'Capacity', hintText: 'Any Capacity', prefixIcon: Icons.airline_seat_recline_normal_rounded),
+              const AppInput(label: 'Capacity', hintText: 'Enter capacity', prefixIcon: Icons.airline_seat_recline_normal_rounded),
               const SizedBox(height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -334,7 +334,7 @@ class AdminBusesView extends ConsumerWidget {
                 const SizedBox(height: 32),
                 AppInput(
                   label: 'Bus Number / ID',
-                  hintText: 'e.g., BUS-101',
+                  hintText: 'Enter bus number',
                   controller: numberController,
                   enabled: !isReadOnly,
                   prefixIcon: Icons.tag_rounded,
@@ -342,7 +342,7 @@ class AdminBusesView extends ConsumerWidget {
                 const SizedBox(height: 20),
                 AppInput(
                   label: 'License Plate',
-                  hintText: 'e.g., SOM-1234',
+                  hintText: 'Enter license plate',
                   controller: plateController,
                   enabled: !isReadOnly,
                   prefixIcon: Icons.badge_outlined,
@@ -353,7 +353,7 @@ class AdminBusesView extends ConsumerWidget {
                     Expanded(
                       child: AppInput(
                         label: 'Total Seats',
-                        hintText: '45',
+                        hintText: 'Enter total seats',
                         controller: seatsController,
                         enabled: !isReadOnly,
                         keyboardType: TextInputType.number,
@@ -364,7 +364,7 @@ class AdminBusesView extends ConsumerWidget {
                     Expanded(
                       child: AppInput(
                         label: 'Bus Type',
-                        hintText: 'Luxury / Standard',
+                        hintText: 'Enter bus type',
                         controller: typeController,
                         enabled: !isReadOnly,
                         prefixIcon: Icons.category_outlined,
@@ -375,7 +375,7 @@ class AdminBusesView extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const AppInput(
                   label: 'Manufacturer / Model',
-                  hintText: 'e.g., Mercedes-Benz Travego',
+                  hintText: 'Enter manufacturer/model',
                   enabled: false,
                   prefixIcon: Icons.directions_bus_filled_outlined,
                 ),

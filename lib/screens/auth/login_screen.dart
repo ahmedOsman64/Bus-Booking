@@ -19,9 +19,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -130,137 +132,162 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 48),
 
                     // Form Section
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(32),
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 30,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          AppInput(
-                            label: 'Email Address',
-                            hintText: 'Enter your email',
-                            controller: _emailController,
-                            prefixIcon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 24),
-                          AppInput(
-                            label: 'Password',
-                            hintText: 'Enter your password',
-                            controller: _passwordController,
-                            isPassword: _obscurePassword,
-                            prefixIcon: Icons.lock_outline_rounded,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_rounded
-                                    : Icons.visibility_rounded,
-                                color: AppColors.textGray,
-                                size: 20,
-                              ),
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
+                    Form(
+                      key: _formKey,
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                              ),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.darkNavy,
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(0, 0),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                'Forgot Password?',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  fontWeight: FontWeight.w600,
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            AppInput(
+                              label: 'Email Address',
+                              hintText: 'Enter your email',
+                              controller: _emailController,
+                              prefixIcon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Email is required';
+                                }
+                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                                  return 'Enter a valid email address';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            AppInput(
+                              label: 'Password',
+                              hintText: 'Enter your password',
+                              controller: _passwordController,
+                              isPassword: _obscurePassword,
+                              prefixIcon: Icons.lock_outline_rounded,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Password is required';
+                                }
+                                if (value.length < 6) {
+                                  return 'Password must be at least 6 characters';
+                                }
+                                return null;
+                              },
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_rounded
+                                      : Icons.visibility_rounded,
+                                  color: AppColors.textGray,
+                                  size: 20,
+                                ),
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 32),
-                          AppButton(
-                            text: 'Login',
-                            onPressed: () async {
-                              final email = _emailController.text.trim();
-                              final password = _passwordController.text;
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.darkNavy,
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(0, 0),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Forgot Password?',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            AppButton(
+                              text: 'Login',
+                              isLoading: _isLoading,
+                              onPressed: () async {
+                                if (!_formKey.currentState!.validate()) return;
 
-                              if (email.isEmpty || password.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please fill all fields')),
-                                );
-                                return;
-                              }
+                                final email = _emailController.text.trim();
+                                final password = _passwordController.text;
 
-                              try {
-                                if (!SupabaseService.isInitialized) {
-                                  throw Exception('Supabase is not configured yet.');
-                                }
+                                setState(() => _isLoading = true);
 
-                                final response = await SupabaseService.signIn(
-                                  email: email,
-                                  password: password,
-                                );
+                                try {
+                                  if (!SupabaseService.isInitialized) {
+                                    throw Exception('Supabase is not configured yet.');
+                                  }
 
-                                if (response.user != null) {
-                                  // Fetch user role from profiles table
-                                  final userData = await SupabaseService.client
-                                      .from('profiles')
-                                      .select()
-                                      .eq('id', response.user!.id)
-                                      .single();
-
-                                  final role = userData['role'] ?? 'passenger';
-
-                                  await AuthService.saveSession(
+                                  final response = await SupabaseService.signIn(
                                     email: email,
-                                    role: role,
+                                    password: password,
                                   );
 
-                                  if (!context.mounted) return;
-                                  
-                                  if (role == 'admin') {
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const AdminDashboardScreen(),
-                                      ),
+                                  if (response.user != null) {
+                                    // Fetch user role from profiles table
+                                    final userData = await SupabaseService.client
+                                        .from('profiles')
+                                        .select()
+                                        .eq('id', response.user!.id)
+                                        .single();
+
+                                    final role = userData['role'] ?? 'passenger';
+
+                                    await AuthService.saveSession(
+                                      email: email,
+                                      role: role,
                                     );
-                                  } else {
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const DashboardScreen(),
-                                      ),
-                                    );
+
+                                    if (!context.mounted) return;
+                                    
+                                    if (role == 'admin') {
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const AdminDashboardScreen(),
+                                        ),
+                                      );
+                                    } else {
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const DashboardScreen(),
+                                        ),
+                                      );
+                                    }
                                   }
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Login failed: $e'),
+                                      backgroundColor: AppColors.error,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                } finally {
+                                  if (mounted) setState(() => _isLoading = false);
                                 }
-                              } catch (e) {
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Login failed: $e')),
-                                );
-                              }
-                            },
-                          ),
-                        ],
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
 

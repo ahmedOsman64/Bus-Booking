@@ -378,17 +378,17 @@ class AdminUsersView extends ConsumerWidget {
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            Expanded(child: AppInput(label: 'First Name', hintText: 'Ahmed', controller: firstNameController, prefixIcon: Icons.badge_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                            Expanded(child: AppInput(label: 'First Name', hintText: 'Enter first name', controller: firstNameController, prefixIcon: Icons.badge_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
                             const SizedBox(width: 20),
-                            Expanded(child: AppInput(label: 'Last Name', hintText: 'Hassan', controller: lastNameController, prefixIcon: Icons.badge_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                            Expanded(child: AppInput(label: 'Last Name', hintText: 'Enter last name', controller: lastNameController, prefixIcon: Icons.badge_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
                           ],
                         ),
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            Expanded(child: AppInput(label: 'Email Address', hintText: 'ahmed@example.com', controller: emailController, prefixIcon: Icons.email_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                            Expanded(child: AppInput(label: 'Email Address', hintText: 'Enter email address', controller: emailController, prefixIcon: Icons.email_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
                             const SizedBox(width: 20),
-                            Expanded(child: AppInput(label: 'Phone Number', hintText: '+252 61XXXXXXX', controller: phoneController, prefixIcon: Icons.phone_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                            Expanded(child: AppInput(label: 'Phone Number', hintText: 'Enter phone number', controller: phoneController, prefixIcon: Icons.phone_outlined, validator: (v) => v!.isEmpty ? 'Required' : null)),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -442,7 +442,7 @@ class AdminUsersView extends ConsumerWidget {
                         ],
 
                         const SizedBox(height: 32),
-                        const AppInput(label: 'Temporary Password', hintText: 'Create a secure password', isPassword: true, prefixIcon: Icons.lock_outline_rounded),
+                        const AppInput(label: 'Temporary Password', hintText: 'Enter temporary password', isPassword: true, prefixIcon: Icons.lock_outline_rounded),
                         const SizedBox(height: 40),
 
                         // Actions

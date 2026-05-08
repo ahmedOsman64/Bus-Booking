@@ -37,10 +37,14 @@ class SupabaseService {
     required String email,
     required String password,
   }) async {
-    return await client.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      return await client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+    } catch (e) {
+      throw _handleAuthError(e);
+    }
   }
 
   static Future<AuthResponse> signUp({
@@ -48,24 +52,48 @@ class SupabaseService {
     required String password,
     required Map<String, dynamic> data,
   }) async {
-    return await client.auth.signUp(
-      email: email,
-      password: password,
-      data: data,
-    );
+    try {
+      return await client.auth.signUp(
+        email: email,
+        password: password,
+        data: data,
+      );
+    } catch (e) {
+      throw _handleAuthError(e);
+    }
   }
 
   static Future<void> signOut() async {
-    await client.auth.signOut();
+    try {
+      await client.auth.signOut();
+    } catch (e) {
+      debugPrint('SignOut Error: $e');
+    }
   }
 
   static Future<void> resetPassword(String email) async {
-    await client.auth.resetPasswordForEmail(email);
+    try {
+      await client.auth.resetPasswordForEmail(email);
+    } catch (e) {
+      throw _handleAuthError(e);
+    }
   }
 
   // Database methods example
   static Future<List<Map<String, dynamic>>> getBuses() async {
-    final response = await client.from('buses').select();
-    return response;
+    try {
+      final response = await client.from('buses').select();
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Database Error (getBuses): $e');
+      throw Exception('Failed to fetch buses. Please check your connection.');
+    }
+  }
+
+  static String _handleAuthError(dynamic e) {
+    if (e is AuthException) {
+      return e.message;
+    }
+    return e.toString();
   }
 }

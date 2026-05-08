@@ -410,13 +410,13 @@ class _AdminProfileViewState extends ConsumerState<AdminProfileView> {
               const SizedBox(height: 24),
               AppInput(
                   label: 'Email Address',
-                  hintText: 'admin@busbooking.com',
+                  hintText: 'Enter email address',
                   controller: _emailController,
                   prefixIcon: Icons.email_outlined),
               const SizedBox(height: 24),
               AppInput(
                   label: 'Phone Number',
-                  hintText: '+252 61XXXXXXX',
+                  hintText: 'Enter phone number',
                   controller: _phoneController,
                   prefixIcon: Icons.phone_android_rounded),
               const SizedBox(height: 24),
@@ -552,27 +552,27 @@ class _AdminProfileViewState extends ConsumerState<AdminProfileView> {
                   const SizedBox(height: 32),
                   Row(
                     children: [
-                      Expanded(child: AppInput(label: 'First Name', hintText: 'Ahmed', controller: _firstNameController, prefixIcon: Icons.badge_outlined)),
+                      Expanded(child: AppInput(label: 'First Name', hintText: 'Enter first name', controller: _firstNameController, prefixIcon: Icons.badge_outlined)),
                       const SizedBox(width: 24),
-                      Expanded(child: AppInput(label: 'Last Name', hintText: 'Osman', controller: _lastNameController, prefixIcon: Icons.badge_outlined)),
+                      Expanded(child: AppInput(label: 'Last Name', hintText: 'Enter last name', controller: _lastNameController, prefixIcon: Icons.badge_outlined)),
                     ],
                   ),
                   const SizedBox(height: 24),
                   AppInput(
                       label: 'Email Address',
-                      hintText: 'ahmed@gmail.com',
+                      hintText: 'Enter email address',
                       controller: _emailController,
                       prefixIcon: Icons.email_outlined),
                   const SizedBox(height: 24),
                   AppInput(
                       label: 'Phone Number',
-                      hintText: '+252 615123456',
+                      hintText: 'Enter phone number',
                       controller: _phoneController,
                       prefixIcon: Icons.phone_android_rounded),
                   const SizedBox(height: 24),
                   AppInput(
                       label: 'Mailing Address',
-                      hintText: 'Mogadishu, Somalia',
+                      hintText: 'Enter mailing address',
                       controller: _addressController,
                       prefixIcon: Icons.location_on_outlined),
                   const SizedBox(height: 40),
@@ -677,7 +677,7 @@ class _AdminProfileViewState extends ConsumerState<AdminProfileView> {
                     const SizedBox(height: 24),
                     AppInput(
                       label: 'New Password',
-                      hintText: 'Minimum 8 characters',
+                      hintText: 'Enter new password',
                       isPassword: true,
                       controller: newPasswordController,
                       prefixIcon: Icons.lock_reset_rounded,
@@ -685,7 +685,7 @@ class _AdminProfileViewState extends ConsumerState<AdminProfileView> {
                     const SizedBox(height: 24),
                     AppInput(
                       label: 'Confirm New Password',
-                      hintText: 'Re-enter new password',
+                      hintText: 'Confirm new password',
                       isPassword: true,
                       controller: confirmPasswordController,
                       prefixIcon: Icons.check_circle_outline_rounded,
