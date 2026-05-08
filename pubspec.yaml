@@ -1,5 +1,5 @@
 name: bus_booking
-description: "Local Bus Routing & Ticketing System"
+description: "BUS BOOKING - Premium Routing & Ticketing System"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -47,6 +47,7 @@ dependencies:
   pdf: ^3.12.0
   printing: ^5.14.3
   path_provider: ^2.1.5
+  supabase_flutter: ^2.12.4
 
 dev_dependencies:
   flutter_test:

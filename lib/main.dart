@@ -5,7 +5,14 @@ import 'l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 
-void main() {
+import 'core/services/supabase_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase
+  await SupabaseService.initialize();
+
   runApp(
     const ProviderScope(
       child: BusBookingApp(),

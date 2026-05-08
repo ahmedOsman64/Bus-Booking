@@ -16,4 +16,25 @@ class BusRoute {
     required this.price,
     required this.busId,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'origin': origin,
+      'destination': destination,
+      'base_price': price,
+    };
+  }
+
+  factory BusRoute.fromMap(Map<String, dynamic> map) {
+    return BusRoute(
+      id: map['id'] ?? '',
+      origin: map['origin'] ?? '',
+      destination: map['destination'] ?? '',
+      departureTime: '', // These would come from trips in the real DB
+      arrivalTime: '',
+      price: (map['base_price'] ?? 0.0).toDouble(),
+      busId: '',
+    );
+  }
 }

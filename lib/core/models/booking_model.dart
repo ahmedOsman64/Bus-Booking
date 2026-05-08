@@ -50,4 +50,38 @@ class Booking {
       createdAt: createdAt,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'passenger_name': passengerName,
+      'passenger_phone': passengerPhone,
+      'passenger_id': passengerId,
+      'seat_numbers': seatNumbers,
+      'total_fare': totalFare,
+      'status': status.name,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  factory Booking.fromMap(Map<String, dynamic> map) {
+    return Booking(
+      id: map['id'] ?? '',
+      passengerName: map['passenger_name'] ?? '',
+      passengerPhone: map['passenger_phone'] ?? '',
+      passengerId: map['passenger_id'] ?? '',
+      origin: '', // These would come from trip join
+      destination: '',
+      travelTime: '',
+      travelDate: '',
+      busName: '',
+      seatNumbers: List<int>.from(map['seat_numbers'] ?? []),
+      totalFare: (map['total_fare'] ?? 0.0).toDouble(),
+      status: BookingStatus.values.firstWhere(
+        (e) => e.name == (map['status'] ?? 'pending'),
+        orElse: () => BookingStatus.pending,
+      ),
+      createdAt: DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
+    );
+  }
 }

@@ -20,7 +20,7 @@ class PdfService {
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('SomSafar System Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('BUS BOOKING System Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
                   pw.Text(DateTime.now().toString().split(' ')[0]),
                 ],
               ),
@@ -69,7 +69,7 @@ class PdfService {
             
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 50),
-              child: pw.Text('Report generated automatically by SomSafar Admin System.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
+              child: pw.Text('Report generated automatically by BUS BOOKING Admin System.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
             ),
           ];
         },
@@ -79,7 +79,7 @@ class PdfService {
     // Save or Preview
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'SomSafar_Report_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      name: 'BUS_BOOKING_Report_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
   }
 }

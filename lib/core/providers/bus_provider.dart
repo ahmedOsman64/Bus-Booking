@@ -1,36 +1,67 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/bus_model.dart';
 
+import '../services/supabase_service.dart';
+
 class BusNotifier extends StateNotifier<List<Bus>> {
-  BusNotifier() : super(_initialBuses);
-
-  static final List<Bus> _initialBuses = [
-    Bus(id: 'B101', number: 'BUS-101', plateNumber: 'SOM-1000', totalSeats: 45, type: 'Luxury', status: 'Available'),
-    Bus(id: 'B102', number: 'BUS-102', plateNumber: 'SOM-1007', totalSeats: 45, type: 'Standard', status: 'On Trip'),
-    Bus(id: 'B103', number: 'BUS-103', plateNumber: 'SOM-1014', totalSeats: 30, type: 'Economy', status: 'Maintenance'),
-    Bus(id: 'B104', number: 'BUS-104', plateNumber: 'SOM-1021', totalSeats: 45, type: 'Luxury', status: 'Available'),
-  ];
-
-  void addBus(Bus bus) {
-    state = [...state, bus];
+  BusNotifier() : super([]) {
+    fetchBuses();
   }
 
-  void updateBus(Bus updatedBus) {
-    state = [
-      for (final bus in state)
-        if (bus.id == updatedBus.id) updatedBus else bus,
-    ];
+  Future<void> fetchBuses() async {
+    try {
+      final List<dynamic> data = await SupabaseService.client.from('buses').select();
+      state = data.map((e) => Bus.fromMap(e)).toList();
+    } catch (e) {
+      // debugPrint('Error fetching buses: $e');
+    }
   }
 
-  void removeBus(String id) {
-    state = state.where((bus) => bus.id != id).toList();
+  Future<void> addBus(Bus bus) async {
+    try {
+      await SupabaseService.client.from('buses').insert(bus.toMap());
+      state = [...state, bus];
+    } catch (e) {
+      // debugPrint('Error adding bus: $e');
+    }
   }
 
-  void updateBusStatus(String id, String status) {
-    state = [
-      for (final bus in state)
-        if (bus.id == id) bus.copyWith(status: status) else bus,
-    ];
+  Future<void> updateBus(Bus updatedBus) async {
+    try {
+      await SupabaseService.client
+          .from('buses')
+          .update(updatedBus.toMap())
+          .eq('id', updatedBus.id);
+      state = [
+        for (final bus in state)
+          if (bus.id == updatedBus.id) updatedBus else bus,
+      ];
+    } catch (e) {
+      // debugPrint('Error updating bus: $e');
+    }
+  }
+
+  Future<void> removeBus(String id) async {
+    try {
+      await SupabaseService.client.from('buses').delete().eq('id', id);
+      state = state.where((bus) => bus.id != id).toList();
+    } catch (e) {
+      // debugPrint('Error removing bus: $e');
+    }
+  }
+
+  Future<void> updateBusStatus(String id, String status) async {
+    try {
+      await SupabaseService.client
+          .from('buses')
+          .update({'status': status}).eq('id', id);
+      state = [
+        for (final bus in state)
+          if (bus.id == id) bus.copyWith(status: status) else bus,
+      ];
+    } catch (e) {
+      // debugPrint('Error updating bus status: $e');
+    }
   }
 }
 

@@ -82,28 +82,18 @@ class AdminDashboardView extends ConsumerWidget {
         ),
         Row(
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.notifications_none_rounded, color: AppColors.darkNavy),
-                onPressed: () {},
-              ),
+            _buildHeaderIcon(
+              icon: Icons.notifications_none_rounded,
+              color: Colors.white,
+              iconColor: AppColors.darkNavy,
+              onTap: () {},
             ),
             const SizedBox(width: 16),
-            const CircleAvatar(
-              radius: 24,
-              backgroundColor: AppColors.teal,
-              child: Icon(Icons.person, color: Colors.white),
+            _buildHeaderIcon(
+              icon: Icons.person_rounded,
+              color: AppColors.darkNavy,
+              iconColor: Colors.white,
+              onTap: () => onNavigate?.call(7),
             ),
           ],
         )
@@ -390,6 +380,33 @@ class AdminDashboardView extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(value, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold, color: AppColors.teal)),
       ],
+    );
+  }
+
+  Widget _buildHeaderIcon({
+    required IconData icon,
+    required Color color,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: iconColor, size: 22),
+      ),
     );
   }
 }

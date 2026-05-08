@@ -1,53 +1,54 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/route_model.dart';
 
+import '../services/supabase_service.dart';
+
 class RouteNotifier extends StateNotifier<List<BusRoute>> {
-  RouteNotifier() : super(_dummyRoutes);
-
-  void addRoute(BusRoute route) {
-    state = [...state, route];
+  RouteNotifier() : super([]) {
+    fetchRoutes();
   }
 
-  void updateRoute(BusRoute updatedRoute) {
-    state = [
-      for (final route in state)
-        if (route.id == updatedRoute.id) updatedRoute else route
-    ];
+  Future<void> fetchRoutes() async {
+    try {
+      final List<dynamic> data = await SupabaseService.client.from('routes').select();
+      state = data.map((e) => BusRoute.fromMap(e)).toList();
+    } catch (e) {
+      // debugPrint('Error fetching routes: $e');
+    }
   }
 
-  void deleteRoute(String id) {
-    state = state.where((route) => route.id != id).toList();
+  Future<void> addRoute(BusRoute route) async {
+    try {
+      await SupabaseService.client.from('routes').insert(route.toMap());
+      state = [...state, route];
+    } catch (e) {
+      // debugPrint('Error adding route: $e');
+    }
   }
 
-  static final List<BusRoute> _dummyRoutes = [
-    BusRoute(
-      id: 'R001',
-      origin: 'Mogadishu',
-      destination: 'Afgooye',
-      departureTime: '08:00 AM',
-      arrivalTime: '09:30 AM',
-      price: 15.0,
-      busId: 'B001',
-    ),
-    BusRoute(
-      id: 'R002',
-      origin: 'Mogadishu',
-      destination: 'Kismayo',
-      departureTime: '06:00 AM',
-      arrivalTime: '04:00 PM',
-      price: 25.0,
-      busId: 'B002',
-    ),
-    BusRoute(
-      id: 'R003',
-      origin: 'Mogadishu',
-      destination: 'Baidoa',
-      departureTime: '07:30 AM',
-      arrivalTime: '01:30 PM',
-      price: 20.0,
-      busId: 'B003',
-    ),
-  ];
+  Future<void> updateRoute(BusRoute updatedRoute) async {
+    try {
+      await SupabaseService.client
+          .from('routes')
+          .update(updatedRoute.toMap())
+          .eq('id', updatedRoute.id);
+      state = [
+        for (final route in state)
+          if (route.id == updatedRoute.id) updatedRoute else route
+      ];
+    } catch (e) {
+      // debugPrint('Error updating route: $e');
+    }
+  }
+
+  Future<void> deleteRoute(String id) async {
+    try {
+      await SupabaseService.client.from('routes').delete().eq('id', id);
+      state = state.where((route) => route.id != id).toList();
+    } catch (e) {
+      // debugPrint('Error deleting route: $e');
+    }
+  }
 }
 
 final routeProvider = StateNotifierProvider<RouteNotifier, List<BusRoute>>((ref) {

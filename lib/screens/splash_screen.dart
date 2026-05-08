@@ -133,7 +133,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     'BUS BOOKING',
                     style: AppTextStyles.h1.copyWith(
                       color: Colors.white,
-                      letterSpacing: 4,
+                      letterSpacing: 8,
+                      fontSize: 24,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -141,8 +142,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   Text(
                     'Safe • Reliable • Digital',
                     style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.lightMint,
-                      letterSpacing: 1.2,
+                      color: AppColors.lightMint.withValues(alpha: 0.8),
+                      letterSpacing: 2.0,
+                      fontSize: 14,
                     ),
                   ),
                 ],

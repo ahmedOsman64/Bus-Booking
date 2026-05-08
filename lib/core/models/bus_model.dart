@@ -36,4 +36,27 @@ class Bus {
       status: status ?? this.status,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'bus_number': number,
+      'plate_number': plateNumber,
+      'total_seats': totalSeats,
+      'bus_type': type,
+      'status': status,
+    };
+  }
+
+  factory Bus.fromMap(Map<String, dynamic> map) {
+    return Bus(
+      id: map['id'] ?? '',
+      number: map['bus_number'] ?? '',
+      plateNumber: map['plate_number'] ?? '',
+      totalSeats: map['total_seats'] ?? 0,
+      type: map['bus_type'] ?? '',
+      status: map['status'] ?? 'Available',
+      occupiedSeats: [], // This might need a separate join or table in the future
+    );
+  }
 }

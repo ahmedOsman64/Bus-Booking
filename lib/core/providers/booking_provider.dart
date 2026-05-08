@@ -1,52 +1,44 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/booking_model.dart';
 
+import '../services/supabase_service.dart';
+
 class BookingNotifier extends StateNotifier<List<Booking>> {
-  BookingNotifier() : super(_dummyBookings);
-
-  void addBooking(Booking booking) {
-    state = [...state, booking];
+  BookingNotifier() : super([]) {
+    fetchBookings();
   }
 
-  void updateBookingStatus(String id, BookingStatus status) {
-    state = [
-      for (final booking in state)
-        if (booking.id == id) booking.copyWith(status: status) else booking,
-    ];
+  Future<void> fetchBookings() async {
+    try {
+      final List<dynamic> data = await SupabaseService.client.from('bookings').select();
+      state = data.map((e) => Booking.fromMap(e)).toList();
+    } catch (e) {
+      // debugPrint('Error fetching bookings: $e');
+    }
   }
 
-  static final List<Booking> _dummyBookings = [
-    Booking(
-      id: 'BKN-2026001',
-      passengerName: 'Ahmed Osman',
-      passengerPhone: '615555555',
-      passengerId: 'ID12345',
-      origin: 'Mogadishu',
-      destination: 'Afgooye',
-      travelTime: '08:00 AM',
-      travelDate: 'May 10, 2026',
-      busName: 'Express 01',
-      seatNumbers: [5, 6],
-      totalFare: 30.0,
-      status: BookingStatus.confirmed,
-      createdAt: DateTime.now(),
-    ),
-    Booking(
-      id: 'BKN-2026002',
-      passengerName: 'Fatima Ali',
-      passengerPhone: '616666666',
-      passengerId: 'ID67890',
-      origin: 'Mogadishu',
-      destination: 'Kismayo',
-      travelTime: '10:00 AM',
-      travelDate: 'May 11, 2026',
-      busName: 'Sahal Luxury',
-      seatNumbers: [12],
-      totalFare: 25.0,
-      status: BookingStatus.pending,
-      createdAt: DateTime.now(),
-    ),
-  ];
+  Future<void> addBooking(Booking booking) async {
+    try {
+      await SupabaseService.client.from('bookings').insert(booking.toMap());
+      state = [...state, booking];
+    } catch (e) {
+      // debugPrint('Error adding booking: $e');
+    }
+  }
+
+  Future<void> updateBookingStatus(String id, BookingStatus status) async {
+    try {
+      await SupabaseService.client
+          .from('bookings')
+          .update({'status': status.name}).eq('id', id);
+      state = [
+        for (final booking in state)
+          if (booking.id == id) booking.copyWith(status: status) else booking,
+      ];
+    } catch (e) {
+      // debugPrint('Error updating booking status: $e');
+    }
+  }
 }
 
 final bookingProvider = StateNotifierProvider<BookingNotifier, List<Booking>>((ref) {

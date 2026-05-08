@@ -50,13 +50,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               backgroundColor: Colors.white,
               elevation: 0,
               iconTheme: const IconThemeData(color: AppColors.darkNavy),
-              title: Text('SomBus Admin', style: AppTextStyles.h4),
+              title: Text('BUS BOOKING Admin', style: AppTextStyles.h4),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_none_rounded),
-                  onPressed: () {},
+                _buildHeaderIcon(
+                  icon: Icons.notifications_none_rounded,
+                  color: Colors.white,
+                  iconColor: AppColors.darkNavy,
+                  onTap: () {},
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
+                _buildHeaderIcon(
+                  icon: Icons.person_rounded,
+                  color: AppColors.darkNavy,
+                  iconColor: Colors.white,
+                  onTap: () => setState(() => _selectedIndex = 7),
+                ),
+                const SizedBox(width: 16),
               ],
             ),
       drawer: isDesktop ? null : Drawer(child: _buildSideNav(context)),
@@ -82,9 +91,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: [
           if (MediaQuery.of(context).size.width > 800) ...[
             const SizedBox(height: 32),
-            Icon(Icons.directions_bus_rounded, size: 48, color: AppColors.teal),
-            const SizedBox(height: 8),
-            Text('SomBus Admin', style: AppTextStyles.h3),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 60,
+                height: 60,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text('BUS BOOKING Admin', style: AppTextStyles.h3),
             const SizedBox(height: 32),
           ] else ...[
             DrawerHeader(
@@ -93,13 +110,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.directions_bus_rounded,
-                      size: 40,
-                      color: AppColors.teal,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.contain,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text('SomBus Admin', style: AppTextStyles.h3),
+                    const SizedBox(height: 12),
+                    Text('BUS BOOKING Admin', style: AppTextStyles.h3),
                   ],
                 ),
               ),
@@ -185,6 +206,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Navigator.pop(context);
           }
         },
+      ),
+    );
+  }
+
+  Widget _buildHeaderIcon({
+    required IconData icon,
+    required Color color,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
       ),
     );
   }

@@ -1,56 +1,53 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 
+import '../services/supabase_service.dart';
+
 class UserNotifier extends StateNotifier<List<User>> {
-  UserNotifier() : super(_initialUsers);
-
-  static final List<User> _initialUsers = [
-    User(
-      id: '1',
-      firstName: 'Ahmed',
-      lastName: 'Hassan',
-      email: 'ahmed@somsafar.com',
-      phoneNumber: '+252 615123456',
-      role: UserRole.admin,
-      status: UserStatus.active,
-      lastActive: '2 hours ago',
-      adminCategory: 'Super Admin',
-    ),
-    User(
-      id: '2',
-      firstName: 'Mohamed',
-      lastName: 'Ali',
-      email: 'mohamed@example.com',
-      phoneNumber: '+252 615654321',
-      role: UserRole.driver,
-      status: UserStatus.active,
-      lastActive: '1 day ago',
-    ),
-    User(
-      id: '3',
-      firstName: 'Fartun',
-      lastName: 'Osman',
-      email: 'fartun@example.com',
-      phoneNumber: '+252 615998877',
-      role: UserRole.passenger,
-      status: UserStatus.active,
-      lastActive: '5 mins ago',
-    ),
-  ];
-
-  void addUser(User user) {
-    state = [...state, user];
+  UserNotifier() : super([]) {
+    fetchUsers();
   }
 
-  void updateUser(User updatedUser) {
-    state = [
-      for (final user in state)
-        if (user.id == updatedUser.id) updatedUser else user
-    ];
+  Future<void> fetchUsers() async {
+    try {
+      final List<dynamic> data = await SupabaseService.client.from('profiles').select();
+      state = data.map((e) => User.fromMap(e)).toList();
+    } catch (e) {
+      // debugPrint('Error fetching users: $e');
+    }
   }
 
-  void deleteUser(String id) {
-    state = state.where((user) => user.id != id).toList();
+  Future<void> addUser(User user) async {
+    try {
+      await SupabaseService.client.from('profiles').insert(user.toMap());
+      state = [...state, user];
+    } catch (e) {
+      // debugPrint('Error adding user: $e');
+    }
+  }
+
+  Future<void> updateUser(User updatedUser) async {
+    try {
+      await SupabaseService.client
+          .from('profiles')
+          .update(updatedUser.toMap())
+          .eq('id', updatedUser.id);
+      state = [
+        for (final user in state)
+          if (user.id == updatedUser.id) updatedUser else user
+      ];
+    } catch (e) {
+      // debugPrint('Error updating user: $e');
+    }
+  }
+
+  Future<void> deleteUser(String id) async {
+    try {
+      await SupabaseService.client.from('profiles').delete().eq('id', id);
+      state = state.where((user) => user.id != id).toList();
+    } catch (e) {
+      // debugPrint('Error deleting user: $e');
+    }
   }
 }
 
