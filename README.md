@@ -1,6 +1,6 @@
 # 🚌 Bus Booking - Local Bus Routing & Ticketing System
 
-Bus Booking is a premium, high-fidelity mobile application designed to modernize the bus travel experience. Built with **Flutter**, it provides a seamless interface for users to search for travels, book tickets, and manage their journeys.
+Bus Booking is a premium, high-fidelity mobile application designed to modernize the bus travel experience. Built with **Flutter** and **Supabase**, it provides a seamless interface for users to search for travels, book tickets, and manage their journeys in real-time.
 
 ## ✨ Features
 
@@ -13,59 +13,75 @@ Bus Booking is a premium, high-fidelity mobile application designed to modernize
 - **User Profiles**: Manage personal info, view booking history, and contact support.
 - **Real-time Notifications**: Stay updated with travel alerts and booking confirmations.
 
+### 🔐 Administrative Portal
+- **Fleet Management**: Add, update, and manage bus details and status.
+- **Route Management**: Define travel routes, schedules, and pricing.
+- **Booking Monitoring**: Real-time view of all passenger reservations with status management (Confirm/Cancel).
+- **User Management**: Oversee registered users and their profiles.
+
 ## 🛠️ Technology Stack
 
 - **Frontend**: Flutter (Dart)
-- **State Management**: Riverpod
-- **Backend**: Supabase (PostgreSQL, Auth, Storage) - *Integration in Progress*
-- **Theming**: Custom Design System (AppColors, AppTextStyles, AppSpacing)
+- **State Management**: Riverpod (Reactive state handling)
+- **Backend**: Supabase (PostgreSQL, Auth, RLS Security)
+- **Database Architecture**: Robust PostgreSQL schema with performance indexing and Row-Level Security.
+- **Theming**: Custom Premium Design System (AppColors, AppTextStyles, AppSpacing).
 
 ## 📁 Project Structure
 
 ```text
 lib/
 ├── core/               # App configuration, theme, and constants
+│   ├── models/         # Centralized data models
+│   ├── providers/      # Riverpod state providers
+│   ├── services/       # Supabase & Auth services
+│   └── theme/          # Premium Design System
 ├── l10n/               # Localization (English/Somali)
-├── models/             # Data models
-├── providers/          # Riverpod state providers
 ├── screens/            # UI Screens
-│   ├── auth/           # Login & Registration
+│   ├── admin/          # Administrative Dashboard & Views
+│   ├── auth/           # Login, Registration & Password Recovery
 │   ├── dashboard/      # Home, Notifications
 │   ├── search/         # Travels search & fleet selection
-│   ├── booking/        # Seat selection & payment
+│   ├── booking/        # Seat selection & passenger info
 │   ├── tickets/        # My Tickets & Ticket Detail
 │   └── profile/        # Settings & User Info
-├── services/           # Supabase & API services
 └── widgets/            # Reusable custom UI components
+database/               # SQL Schemas and RLS Policies
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 - Flutter SDK (3.22+)
-- Dart SDK
-- Android Studio / VS Code
+- Supabase Account & Project
 
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/bus-booking.git
+   git clone https://github.com/ahmedOsman64/Bus-Booking.git
    ```
 2. Install dependencies:
    ```bash
    flutter pub get
    ```
-3. Run the application:
+3. **Database Setup**:
+   - Create a new project in [Supabase](https://supabase.com/).
+   - Copy the contents of `database/schema.sql` and run it in the Supabase SQL Editor.
+   - This will set up the tables (`profiles`, `buses`, `routes`, `bookings`) and RLS policies.
+4. **Environment Setup**:
+   - Update `lib/core/services/supabase_service.dart` with your `supabaseUrl` and `supabaseAnonKey`.
+5. Run the application:
    ```bash
    flutter run
    ```
 
 ## 🗓️ Roadmap
 - [x] High-fidelity Flutter Frontend
-- [ ] Supabase Backend Integration
-- [ ] React Web Admin Panel Development
+- [x] Supabase Backend Integration (Auth & Database)
+- [x] Administrative Dashboard (CRUD Operations)
 - [ ] Push Notifications Implementation
-- [ ] Payment Gateway Integration (EVC Plus / Sahal)
+- [ ] Payment Gateway Integration (EVC Plus / Sahal / eDahab)
+- [ ] Analytics & Reporting for Admin
 
 ---
-Developed with ❤️ by the Bus Booking Team.
+Developed with ❤️ for a better travel experience.
